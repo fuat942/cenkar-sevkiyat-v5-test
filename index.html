@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cenkar Sevkiyat</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f6f8;color:#18202a}
+header{background:#111827;color:white;padding:18px 16px 14px;position:sticky;top:0;z-index:5}
+h1{font-size:22px;margin:0 0 12px}.tabs{display:flex;gap:8px;overflow-x:auto}.tab{border:0;border-radius:10px;padding:10px 13px;background:#263244;color:#fff;font-weight:700;white-space:nowrap}.tab.active{background:#fff;color:#111827}
+main{padding:14px;max-width:700px;margin:auto}.card{background:#fff;border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:0 2px 10px #0000000b}
+label{display:block;font-size:13px;font-weight:700;margin:11px 0 5px}input,select,textarea{width:100%;font-size:17px;padding:12px;border:1px solid #d8dde5;border-radius:11px;background:#fff}textarea{min-height:70px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}
+button.primary{width:100%;border:0;border-radius:12px;padding:14px;margin-top:15px;background:#111827;color:white;font-size:17px;font-weight:800}
+button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;padding:8px 10px}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.stat{background:#fff;border-radius:13px;padding:11px}.stat b{display:block;font-size:20px}.stat span{font-size:11px;color:#687385}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}.filters input{grid-column:1/-1}
+.order{border:1px solid #e4e8ee;border-radius:14px;padding:13px;margin-top:10px}.top{display:flex;justify-content:space-between;gap:8px}.badge{font-size:11px;font-weight:800;padding:5px 8px;border-radius:8px;background:#eef2ff;color:#3730a3}.badge.done{background:#dcfce7;color:#166534}.meta{font-size:13px;color:#596579;line-height:1.65;margin-top:7px}.actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.actions button{flex:1;min-width:135px;padding:9px;border-radius:9px;border:1px solid #d7dce4;background:white;font-weight:700}
+.hidden{display:none}.small{font-size:12px;color:#687385}.file-status{font-size:12px;margin-top:7px;color:#166534;font-weight:700}.section-title{font-size:18px;font-weight:800;margin:4px 0 10px}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;justify-content:center;z-index:50}.modal.show{display:flex}.modal-box{background:#fff;width:100%;max-width:700px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px}.modal-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.modal-head h2{margin:0;font-size:20px}.close{border:0;background:#eef2f6;border-radius:10px;padding:8px 12px;font-size:20px}.modal-actions{display:flex;gap:8px;margin-top:14px}.modal-actions button{flex:1;padding:13px;border:0;border-radius:11px;font-weight:800}.save-edit{background:#111827;color:#fff}.cancel-edit{background:#e5e7eb;color:#111827}
+@media(max-width:420px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.summary{grid-template-columns:1fr 1fr}.summary .stat:last-child{grid-column:1/-1}}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cenkar">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<header>
+<h1>🚚 Cenkar Sevkiyat</h1>
+<div class="tabs">
+<button type="button" class="tab active" data-section="new">➕ Yeni Sipariş</button>
+<button type="button" class="tab" data-section="list">📋 Siparişler</button>
+<button type="button" class="tab" data-section="completed">✅ Tamamlananlar</button><button type="button" class="tab" data-section="payments">💰 Haftalık Ödeme</button>
+</div>
+</header>
+<main>
+<section id="new">
+<div class="card">
+<div class="grid">
+<div class="full"><label>Karşı ödemeli</label><input id="customer" placeholder="Karşı ödemeli adı"></div>
+<div><label>Ürün çeşidi</label><select id="product" onchange="productChanged()"><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div>
+<div><label>İl</label><input id="city" placeholder="İl adı" autocomplete="address-level1"></div>
+<div><label>İlçe</label><input id="district" placeholder="İlçe"></div>
+<div><label>İrtibat kişisi</label><input id="contact" placeholder="Ad Soyad"></div>
+<div><label>Telefon</label><input id="phone" type="tel" inputmode="tel" placeholder="05xx xxx xx xx"></div>
+<div><label>Miktar (m²)</label><input id="sqm" type="number" inputmode="decimal" placeholder="Örn. 1000"></div>
+<div><label>Çekici plakası</label><input id="plate" placeholder="21 ABC 123"></div>
+<div><label>Dorse plakası</label><input id="trailerPlate" placeholder="21 DEF 456"></div>
+<div class="full"><label>Sevk bilgilerini yapıştır</label><textarea id="shipmentPaste" placeholder="WhatsApp / sevk mesajını buraya yapıştırabilirsin...
+Örn: Çekici: 21 ABC 123
+Dorse: 21 DEF 456
+Şoför: Ahmet Yılmaz
+Nakliye ücreti: 8.500 TL"></textarea><button type="button" class="primary" onclick="parseShipmentText()">📋 Sevk Bilgilerini İşle</button><p class="small">Yapıştırılan metindeki tarih, araç plakaları, şoför, nakliye ücreti ve ödeme bilgileri mümkün olduğunca otomatik doldurulur. Kaydetmeden önce kontrol edebilirsin.</p></div>
+<div id="densityBox"><label>Yoğunluk (DNS)</label><select id="density"><option>22</option><option>24</option><option>26</option><option>28</option><option>30</option><option>32</option><option>34</option><option>36</option><option>38</option><option>40</option></select></div>
+<div id="foilBox"><label>Yerden Isıtma</label><select id="foil"><option>Folyolu</option><option>Folyosuz</option></select></div>
+<div id="thicknessBox" class="hidden"><label>Kalınlık (cm)</label><select id="thickness"></select></div>
+<div><label>Sevkiyat tarihi</label><input id="date" type="date"></div>
+<div><label>Şoför</label><input id="driver" placeholder="Ad Soyad"></div>
+<div><label>Nakliye ücreti (TL)</label><input id="freightFee" type="number" inputmode="decimal" placeholder="0"></div>
+<div><label>Ödeme</label><select id="paymentType"><option value="Cenkar'a ait">Cenkar'a ait</option><option value="Karşı ödemeli">Karşı ödemeli yapıyor</option></select></div>
+<div id="paymentPersonBox"><label>Ödeme yapılacak kişi</label><input id="paymentPerson" placeholder="Ad Soyad"></div>
+<div id="paymentAmountBox"><label>Ödenecek tutar (TL)</label><input id="paymentAmount" type="number" inputmode="decimal" placeholder="0"></div>
+<div><label>Ödeme durumu</label><select id="paymentStatus"><option>Bekliyor</option><option>Ödendi</option></select></div>
+<div><label>Durum</label><select id="status"><option>Bekliyor</option><option>Hazırlanıyor</option><option>Sevk Edildi</option><option>Teslim Edildi</option></select></div>
+<div class="full"><label>Not</label><textarea id="note" placeholder="İsteğe bağlı"></textarea></div>
+</div>
+<button type="button" class="primary" onclick="save()">Siparişi Kaydet</button>
+<p class="small">Sipariş bilgileri bu telefonda saklanır. Teslim formları da bu telefonda saklanır.</p>
+</div>
+</section>
+
+<section id="list" class="hidden">
+<div class="summary"><div class="stat"><b id="count">0</b><span>Aktif Sipariş</span></div><div class="stat"><b id="total">0</b><span>Toplam m²</span></div><div class="stat"><b id="pending">0</b><span>Bekleyen</span></div></div>
+<div class="card">
+<div class="filters"><input id="search" placeholder="🔎 Karşı ödemeli, plaka veya şoför ara" oninput="renderActive()">
+<select id="fcity" onchange="renderActive()"><option value="">Tüm iller</option></select>
+<select id="fproduct" onchange="renderActive()"><option value="">Tüm ürünler</option><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div>
+</div>
+<div id="orders"></div>
+</section>
+
+<section id="completed" class="hidden">
+<div class="summary"><div class="stat"><b id="doneCount">0</b><span>Tamamlanan</span></div><div class="stat"><b id="doneTotal">0</b><span>Tamamlanan m²</span></div><div class="stat"><b id="doneForms">0</b><span>Teslim Formu</span></div></div>
+<div class="card">
+<div class="filters"><input id="doneSearch" placeholder="🔎 Tamamlananlarda ara" oninput="renderCompleted()">
+<select id="doneCity" onchange="renderCompleted()"><option value="">Tüm iller</option></select>
+<select id="doneProduct" onchange="renderCompleted()"><option value="">Tüm ürünler</option><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div>
+</div>
+<div class="card"><div class="section-title">Tamamlanan Siparişler</div><div class="small">Durumu “Teslim Edildi” olan sevkiyatlar burada görünür.</div></div>
+<div id="completedOrders"></div>
+</section>
+<section id="payments" class="hidden">
+<div class="summary"><div class="stat"><b id="payCount">0</b><span>Ödeme Kaydı</span></div><div class="stat"><b id="payTotal">0</b><span>Toplam TL</span></div><div class="stat"><b id="payPending">0</b><span>Bekleyen</span></div></div>
+<div class="card"><div class="filters"><input id="paySearch" placeholder="🔎 Kişi, müşteri, plaka veya il ara" oninput="renderPayments()"><input id="payWeek" type="date" onchange="renderPayments()"></div><p class="small">Liste, seçtiğin haftanın Cuma günü ödemesi için hazırlanır. Ödeme “Cenkar'a ait” olarak işaretlenmiş siparişler görünür.</p></div>
+<div class="card"><div class="section-title">Cuma Haftalık Ödeme Listesi</div><div id="paymentOrders"></div></div>
+</section>
+</main>
+
+<div id="editModal" class="modal" onclick="if(event.target===this) closeEdit()">
+<div class="modal-box">
+<div class="modal-head"><h2>✏️ Siparişi Düzenle</h2><button type="button" class="close" onclick="closeEdit()">×</button></div>
+<div class="grid">
+<div class="full"><label>Karşı ödemeli</label><input id="e_customer"></div>
+<div><label>Ürün çeşidi</label><select id="e_product" onchange="editProductChanged()"><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div>
+<div><label>İl</label><input id="e_city" placeholder="İl adı"></div>
+<div><label>İlçe</label><input id="e_district" placeholder="İlçe"></div>
+<div><label>İrtibat kişisi</label><input id="e_contact" placeholder="Ad Soyad"></div>
+<div><label>Telefon</label><input id="e_phone" type="tel" inputmode="tel" placeholder="05xx xxx xx xx"></div>
+<div><label>Miktar (m²)</label><input id="e_sqm" type="number" inputmode="decimal"></div>
+<div><label>Çekici plakası</label><input id="e_plate" placeholder="21 ABC 123"></div>
+<div><label>Dorse plakası</label><input id="e_trailerPlate" placeholder="21 DEF 456"></div>
+<div class="full"><label>Sevk bilgilerini yapıştır</label><textarea id="e_shipmentPaste" placeholder="Sevk bilgisi / WhatsApp mesajını buraya yapıştır..."></textarea><button type="button" class="primary" onclick="parseShipmentTextEdit()">📋 Sevk Bilgilerini İşle</button><p class="small">Bilgiler bu siparişin alanlarına işlenir. Kaydetmeden önce kontrol et.</p></div>
+<div id="e_densityBox"><label>Yoğunluk (DNS)</label><select id="e_density"><option>22</option><option>24</option><option>26</option><option>28</option><option>30</option><option>32</option><option>34</option><option>36</option><option>38</option><option>40</option></select></div>
+<div id="e_foilBox"><label>Yerden Isıtma</label><select id="e_foil"><option>Folyolu</option><option>Folyosuz</option></select></div>
+<div id="e_thicknessBox" class="hidden"><label>Kalınlık (cm)</label><select id="e_thickness"></select></div>
+<div><label>Sevkiyat tarihi</label><input id="e_date" type="date"></div>
+<div><label>Şoför</label><input id="e_driver" placeholder="Ad Soyad"></div>
+<div><label>Nakliye ücreti (TL)</label><input id="e_freightFee" type="number" inputmode="decimal"></div>
+<div><label>Ödeme</label><select id="e_paymentType"><option value="Cenkar'a ait">Cenkar'a ait</option><option value="Karşı ödemeli">Karşı ödemeli yapıyor</option></select></div>
+<div><label>Ödeme yapılacak kişi</label><input id="e_paymentPerson" placeholder="Ad Soyad"></div>
+<div><label>Ödenecek tutar (TL)</label><input id="e_paymentAmount" type="number" inputmode="decimal"></div>
+<div><label>Ödeme durumu</label><select id="e_paymentStatus"><option>Bekliyor</option><option>Ödendi</option></select></div>
+<div><label>Durum</label><select id="e_status"><option>Bekliyor</option><option>Hazırlanıyor</option><option>Sevk Edildi</option><option>Teslim Edildi</option></select></div>
+<div class="full"><label>Not</label><textarea id="e_note"></textarea></div>
+</div>
+<div class="modal-actions"><button type="button" class="cancel-edit" onclick="closeEdit()">Vazgeç</button><button type="button" class="save-edit" onclick="saveEdit()">Değişiklikleri Kaydet</button></div>
+</div></div>
+<input id="fileInput" type="file" accept="image/*,.pdf" class="hidden" onchange="handleFile(event)">
+
+<script>
+let data=JSON.parse(localStorage.getItem('cenkar_orders')||'[]');
+const $=id=>document.getElementById(id);
+let selectedOrderForFile=null;
+
+const DB_NAME='cenkar_files_db', DB_VERSION=1, STORE='delivery_forms';
+function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'orderId'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+async function saveFile(orderId,file){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({orderId,name:file.name,type:file.type,blob:file,updatedAt:Date.now()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
+async function getFile(orderId){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const r=tx.objectStore(STORE).get(orderId);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}
+async function deleteFile(orderId){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(orderId);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
+
+function show(which,btn){document.querySelectorAll('main>section').forEach(x=>x.classList.add('hidden'));$(which).classList.remove('hidden');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(which==='list'){populateCities();renderActive()}if(which==='completed'){populateCities();renderCompleted()} if(which==='payments'){renderPayments()}}
+
+function save(){
+ let customer=$('customer').value.trim(); if(!customer){alert('Karşı ödemeli adını girin.');return}
+ let item={id:Date.now(),customer,product:$('product').value,city:$('city').value.trim(),district:$('district').value.trim(),contact:$('contact').value.trim(),phone:$('phone').value.trim(),sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,thickness:$('thickness').value,date:$('date').value,plate:$('plate').value.trim(),trailerPlate:$('trailerPlate').value.trim(),driver:$('driver').value.trim(),freightFee:Number($('freightFee').value)||0,paymentType:$('paymentType').value,paymentPerson:$('paymentPerson').value.trim(),paymentAmount:Number($('paymentAmount').value)||0,paymentStatus:$('paymentStatus').value,status:$('status').value,note:$('note').value.trim()};
+ data.unshift(item);localStorage.setItem('cenkar_orders',JSON.stringify(data));
+ alert('Sipariş kaydedildi.');
+ document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');
+ $('product').value='Yerden Isıtma'; productChanged(); $('status').value='Bekliyor'; $('date').value=new Date().toISOString().slice(0,10); $('paymentType').value='Cenkar'a ait'; $('paymentStatus').value='Bekliyor'; togglePaymentFields();
+}
+
+function togglePaymentFields(){ let mine=$('paymentType').value==='Cenkar'a ait'; $('paymentPersonBox').classList.toggle('hidden',!mine); $('paymentAmountBox').classList.toggle('hidden',!mine); }
+function productChanged(){
+ let p=$('product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';
+ $('foilBox').classList.toggle('hidden',!isY);$('densityBox').classList.toggle('hidden',!(isY||isM));$('thicknessBox').classList.toggle('hidden',!isM);
+ if(isM && !$('thickness').options.length){for(let i=1;i<=15;i++){let o=document.createElement('option');o.textContent=i;$('thickness').appendChild(o)}}
+}
+
+function parseShipmentText(){
+ let raw=$('shipmentPaste').value.trim();
+ if(!raw){alert('Önce sevk bilgilerini yapıştır.');return}
+ const lines=raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+ function val(labels){
+   for(const line of lines){
+     for(const label of labels){
+       const re=new RegExp('^'+label+'\\s*[:=-]\\s*(.+)$','i');
+       const m=line.match(re); if(m)return m[1].trim();
+     }
+   }
+   return '';
+ }
+ const all=raw.replace(/\n/g,' ');
+ const tractor=val(['çekici plakası','çekici','araç plakası','araç']) || (all.match(/\b\d{2}\s?[A-ZÇĞİÖŞÜ]{1,3}\s?\d{2,4}\b/gi)||[])[0] || '';
+ let plates=all.match(/\b\d{2}\s?[A-ZÇĞİÖŞÜ]{1,3}\s?\d{2,4}\b/gi)||[];
+ const trailer=val(['dorse plakası','dorse','römork']) || (plates.length>1?plates[1]:'');
+ const driver=val(['şoför','sofor','sürücü','surucu']);
+ const city=val(['il','şehir','sehir']); const district=val(['ilçe','ilce']);
+ const contact=val(['irtibat','yetkili','ilgili kişi','ilgili kisi']); const phone=val(['telefon','tel','gsm']);
+ const customer=val(['müşteri','musteri','firma','müşteri adı','musteri adi']);
+ const product=val(['ürün','urun','ürün çeşidi','urun cesidi']);
+ const qty=val(['miktar','m²','m2']);
+ const dateRaw=val(['sevk tarihi','sevkiyat tarihi','teslim tarihi','tarih']);
+ const freightRaw=val(['nakliye ücreti','nakliye','taşıma ücreti','tasima ucreti']);
+ const payPerson=val(['ödeme yapılacak kişi','odeme yapilacak kisi','ödeme kişisi','odeme kisisi']);
+ const payAmount=val(['ödenecek tutar','odeme tutari','ödeme tutarı']);
+ const status=val(['durum']);
+ const note=val(['not','açıklama','aciklama']);
+ if(customer)$('customer').value=customer;
+ if(city)$('city').value=city; if(district)$('district').value=district;
+ if(contact)$('contact').value=contact; if(phone)$('phone').value=phone;
+ if(tractor)$('plate').value=tractor.replace(/\s+/g,' ').trim(); if(trailer)$('trailerPlate').value=trailer.replace(/\s+/g,' ').trim();
+ if(driver)$('driver').value=driver;
+ if(qty){const m=qty.replace(/\./g,'').replace(',','.').match(/[0-9]+(?:\.[0-9]+)?/);if(m)$('sqm').value=m[0]}
+ if(freightRaw){const m=freightRaw.replace(/\./g,'').replace(',','.').match(/[0-9]+(?:\.[0-9]+)?/);if(m){$('freightFee').value=m[0];$('paymentAmount').value=m[0]}}
+ if(payPerson)$('paymentPerson').value=payPerson;
+ if(payAmount){const m=payAmount.replace(/\./g,'').replace(',','.').match(/[0-9]+(?:\.[0-9]+)?/);if(m)$('paymentAmount').value=m[0]}
+ const lower=raw.toLocaleLowerCase('tr-TR');
+ if(lower.includes('müşteri yap')||lower.includes('musteri yap')) $('paymentType').value='Karşı ödemeli'; else if(lower.includes('bizim')) $('paymentType').value='Cenkar'a ait';
+ if(status && ['Bekliyor','Hazırlanıyor','Sevk Edildi','Teslim Edildi'].some(s=>status.toLocaleLowerCase('tr-TR').includes(s.toLocaleLowerCase('tr-TR')))){ $('status').value=['Bekliyor','Hazırlanıyor','Sevk Edildi','Teslim Edildi'].find(s=>status.toLocaleLowerCase('tr-TR').includes(s.toLocaleLowerCase('tr-TR')))||'Bekliyor'; }
+ if(note)$('note').value=note;
+ if(dateRaw){let m=dateRaw.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);if(m){let y=m[3].length===2?'20'+m[3]:m[3];$('date').value=`${y}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`}}
+ // Product heuristics
+ if(/mantolama/i.test(raw)) $('product').value='Mantolama'; else if(/hips/i.test(raw)) $('product').value='HIPS'; else if(/\bpp\b/i.test(raw)) $('product').value='PP'; else if(/yerden\s*ısıtma|yerden\s*isitma/i.test(raw)) $('product').value='Yerden Isıtma';
+ productChanged();
+ if(/folyosuz/i.test(raw))$('foil').value='Folyosuz'; else if(/folyolu/i.test(raw))$('foil').value='Folyolu';
+ const dm=raw.match(/\b(8|10|12|14|16|18|20|22|24|26|28|30|32|34|36|38|40)\s*(?:dns)?\b/i); if(dm && $('density'))$('density').value=dm[1];
+ const tm=raw.match(/\b([1-9]|1[0-5])\s*cm\b/i); if(tm && $('thickness'))$('thickness').value=tm[1];
+ togglePaymentFields();
+ alert('Sevk bilgileri forma işlendi. Kaydetmeden önce kontrol et.');
+}
+
+function parseShipmentTextEdit(){
+ let raw=$('e_shipmentPaste').value.trim(); if(!raw){alert('Önce sevk bilgilerini yapıştır.');return}
+ const lines=raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean), all=raw.replace(/\n/g,' ');
+ function val(labels){for(const line of lines){for(const label of labels){const m=line.match(new RegExp('^'+label+'\\s*[:=-]\\s*(.+)$','i'));if(m)return m[1].trim()}}return ''}
+ const plates=all.match(/\b\d{2}\s?[A-ZÇĞİÖŞÜ]{1,3}\s?\d{2,4}\b/gi)||[];
+ const tractor=val(['çekici plakası','çekici','araç plakası','araç'])||plates[0]||'';
+ const trailer=val(['dorse plakası','dorse','römork'])||(plates.length>1?plates[1]:'');
+ const driver=val(['şoför','sofor','sürücü','surucu']), freight=val(['nakliye ücreti','nakliye','taşıma ücreti','tasima ucreti']);
+ const dateRaw=val(['sevk tarihi','sevkiyat tarihi','teslim tarihi','tarih']);
+ if(tractor)$('e_plate').value=tractor.replace(/\s+/g,' ').trim(); if(trailer)$('e_trailerPlate').value=trailer.replace(/\s+/g,' ').trim(); if(driver)$('e_driver').value=driver;
+ if(freight){const m=freight.replace(/\./g,'').replace(',','.').match(/[0-9]+(?:\.[0-9]+)?/);if(m){$('e_freightFee').value=m[0];$('e_paymentAmount').value=m[0]}}
+ if(dateRaw){const m=dateRaw.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);if(m){let y=m[3].length===2?'20'+m[3]:m[3];$('e_date').value=`${y}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`}}
+ const payPerson=val(['ödeme yapılacak kişi','odeme yapilacak kisi','ödeme kişisi','odeme kisisi']); if(payPerson)$('e_paymentPerson').value=payPerson;
+ const payAmount=val(['ödenecek tutar','odeme tutari','ödeme tutarı']); if(payAmount){const m=payAmount.replace(/\./g,'').replace(',','.').match(/[0-9]+(?:\.[0-9]+)?/);if(m)$('e_paymentAmount').value=m[0]}
+ const lower=raw.toLocaleLowerCase('tr-TR'); if(lower.includes('müşteri yap')||lower.includes('musteri yap'))$('e_paymentType').value='Karşı ödemeli'; else if(lower.includes('bizim'))$('e_paymentType').value='Cenkar'a ait';
+ const status=val(['durum']); if(status){for(const s of ['Bekliyor','Hazırlanıyor','Sevk Edildi','Teslim Edildi']) if(status.toLocaleLowerCase('tr-TR').includes(s.toLocaleLowerCase('tr-TR'))){$('e_status').value=s;break}}
+ $('e_paymentPerson').disabled=$('e_paymentType').value==='Karşı ödemeli'; $('e_paymentAmount').disabled=$('e_paymentType').value==='Karşı ödemeli';
+ alert('Sevk bilgileri bu siparişe işlendi. Kaydetmeden önce kontrol et.');
+}
+
+function populateCities(){
+ let cities=[...new Set(data.map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));
+ let opts='<option value="">Tüm iller</option>'+cities.map(x=>`<option value="${escAttr(x)}">${esc(x)}</option>`).join('');
+ $('fcity').innerHTML=opts;$('doneCity').innerHTML=opts;
+}
+function matches(x,q,city,prod){return(!q||[x.customer,x.plate,x.trailerPlate,x.driver,x.city,x.district,x.contact,x.phone,x.paymentPerson].join(' ').toLowerCase().includes(q))&&(!city||x.city===city)&&(!prod||x.product===prod)}
+function orderHTML(x){
+ let pay=x.paymentType==='Karşı ödemeli'?'💳 Ödemeyi müşteri yapıyor':`💰 ${x.paymentPerson||'Ödeme kişisi belirtilmemiş'} · ${Number(x.paymentAmount||0).toLocaleString('tr-TR')} TL · ${x.paymentStatus||'Bekliyor'}`;
+ return `<div class="order"><div class="top"><b>${esc(x.customer)}</b><span class="badge ${x.status==='Teslim Edildi'?'done':''}">${esc(x.status)}</span></div><div class="meta"><b>${esc(x.product)}</b>${x.product==='Yerden Isıtma'?' · '+esc(x.foil)+' · '+esc(x.density)+' DNS':''}${x.product==='Mantolama'?' · '+esc(x.thickness)+' cm · '+esc(x.density)+' DNS':''} · ${esc(x.city)||'-'} / ${esc(x.district)||'-'} · <b>${Number(x.sqm||0).toLocaleString('tr-TR')} m²</b><br>📅 ${x.date||'-'} · 🚛 Çekici: ${esc(x.plate)||'-'} · Dorse: ${esc(x.trailerPlate)||'-'} · 👤 ${esc(x.driver)||'-'}<br>📞 ${esc(x.contact)||'-'} · ${esc(x.phone)||'-'}<br>🚚 Nakliye ücreti: <b>${Number(x.freightFee||0).toLocaleString('tr-TR')} TL</b><br>${pay}</div><div id="file-${x.id}" class="file-status"></div><div class="actions"><button onclick="openEdit(${x.id})">✏️ Düzenle</button><button onclick="chooseFile(${x.id})">📎 Teslim Formu Yükle</button>${x.status==='Teslim Edildi'?'<button onclick="viewFile('+x.id+')">📄 Formu Görüntüle</button>':''}<button class="danger" onclick="del(${x.id})">Sil</button></div></div>`
+}
+function renderActive(){
+ let q=$('search').value.toLowerCase(),city=$('fcity').value,prod=$('fproduct').value;
+ let arr=data.filter(x=>x.status!=='Teslim Edildi'&&matches(x,q,city,prod));
+ let active=data.filter(x=>x.status!=='Teslim Edildi');
+ $('count').textContent=active.length;$('total').textContent=active.reduce((a,x)=>a+x.sqm,0).toLocaleString('tr-TR');$('pending').textContent=active.filter(x=>x.status!=='Sevk Edildi').length;
+ $('orders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Aktif sipariş bulunamadı.</div>';
+ refreshFileStatuses(arr);
+}
+async function renderCompleted(){
+ let q=$('doneSearch').value.toLowerCase(),city=$('doneCity').value,prod=$('doneProduct').value;
+ let all=data.filter(x=>x.status==='Teslim Edildi'),arr=all.filter(x=>matches(x,q,city,prod));
+ $('doneCount').textContent=all.length;$('doneTotal').textContent=all.reduce((a,x)=>a+x.sqm,0).toLocaleString('tr-TR');
+ let formCount=0;for(const x of all){if(await getFile(x.id))formCount++} $('doneForms').textContent=formCount;
+ $('completedOrders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Tamamlanan sipariş bulunamadı.</div>';
+ refreshFileStatuses(arr);
+}
+async function refreshFileStatuses(arr){for(const x of arr){const f=await getFile(x.id);const el=$('file-'+x.id);if(el)el.textContent=f?'📎 Teslim formu: '+f.name:''}}
+function weekKey(dateStr){ if(!dateStr) return ''; let d=new Date(dateStr+'T12:00:00'); let day=d.getDay(); let diff=(day===0?-6:1-day); d.setDate(d.getDate()+diff); return d.toISOString().slice(0,10); }
+function renderPayments(){ let q=($('paySearch').value||'').toLowerCase(), target=$('payWeek').value; if(!target) target=weekKey(new Date().toISOString().slice(0,10)); let arr=data.filter(x=>x.paymentType!=='Karşı ödemeli' && weekKey(x.date)===target && (!q||[x.customer,x.paymentPerson,x.plate,x.trailerPlate,x.city,x.district,x.driver].join(' ').toLowerCase().includes(q))); $('payCount').textContent=arr.length; $('payTotal').textContent=arr.reduce((a,x)=>a+Number(x.paymentAmount||0),0).toLocaleString('tr-TR'); $('payPending').textContent=arr.filter(x=>x.paymentStatus!=='Ödendi').length; $('paymentOrders').innerHTML=arr.length?arr.map(x=>`<div class="order"><div class="top"><b>${esc(x.paymentPerson||'Ödeme kişisi yok')}</b><span class="badge ${x.paymentStatus==='Ödendi'?'done':''}">${esc(x.paymentStatus||'Bekliyor')}</span></div><div class="meta">${esc(x.customer)} · ${esc(x.city)||'-'} / ${esc(x.district)||'-'} · ${Number(x.sqm||0).toLocaleString('tr-TR')} m²<br>🚛 Çekici: ${esc(x.plate)||'-'} · Dorse: ${esc(x.trailerPlate)||'-'} · 👤 ${esc(x.driver)||'-'} · 📅 ${x.date||'-'}<br>🚚 Nakliye: ${Number(x.freightFee||0).toLocaleString('tr-TR')} TL<br><b>${Number(x.paymentAmount||0).toLocaleString('tr-TR')} TL</b></div><div class="actions"><button onclick="togglePaymentStatus(${x.id})">${x.paymentStatus==='Ödendi'?'↩️ Bekliyor yap':'✅ Ödendi yap'}</button><button onclick="openEdit(${x.id})">✏️ Düzenle</button></div></div>`).join(''):'<div class="small">Bu hafta için ödeme kaydı bulunamadı.</div>'; }
+function togglePaymentStatus(id){ let x=data.find(a=>a.id===id); if(!x)return; x.paymentStatus=x.paymentStatus==='Ödendi'?'Bekliyor':'Ödendi'; localStorage.setItem('cenkar_orders',JSON.stringify(data)); renderPayments(); }
+
+let editingId=null;
+function fillThicknessSelect(){if(!$('e_thickness').options.length){for(let i=1;i<=15;i++){let o=document.createElement('option');o.textContent=i;$('e_thickness').appendChild(o)}}}
+function editProductChanged(){let p=$('e_product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('e_foilBox').classList.toggle('hidden',!isY);$('e_densityBox').classList.toggle('hidden',!(isY||isM));$('e_thicknessBox').classList.toggle('hidden',!isM);if(isM)fillThicknessSelect()}
+function openEdit(id){let x=data.find(a=>a.id===id);if(!x)return;editingId=id;['customer','city','district','contact','phone','sqm','date','plate','trailerPlate','driver','freightFee','paymentPerson','paymentAmount','note'].forEach(k=>{let el=$('e_'+k);if(el)el.value=x[k]??''});$('e_product').value=x.product||'Yerden Isıtma';$('e_density').value=x.density||'22';$('e_foil').value=x.foil||'Folyolu';fillThicknessSelect();$('e_thickness').value=x.thickness||'1';$('e_paymentType').value=x.paymentType||'Cenkar'a ait'; $('e_paymentStatus').value=x.paymentStatus||'Bekliyor'; $('e_paymentPerson').disabled=x.paymentType==='Karşı ödemeli'; $('e_paymentAmount').disabled=x.paymentType==='Karşı ödemeli'; $('e_status').value=x.status||'Bekliyor';editProductChanged();$('e_status').value=x.status||'Bekliyor';$('editModal').classList.add('show')}
+function closeEdit(){editingId=null;$('editModal').classList.remove('show')}
+function saveEdit(){if(!editingId)return;let x=data.find(a=>a.id===editingId);if(!x)return;let customer=$('e_customer').value.trim();if(!customer){alert('Karşı ödemeli adını girin.');return}Object.assign(x,{customer,product:$('e_product').value,city:$('e_city').value.trim(),district:$('e_district').value.trim(),contact:$('e_contact').value.trim(),phone:$('e_phone').value.trim(),sqm:Number($('e_sqm').value)||0,density:$('e_density').value,foil:$('e_foil').value,thickness:$('e_thickness').value,date:$('e_date').value,plate:$('e_plate').value.trim(),trailerPlate:$('e_trailerPlate').value.trim(),driver:$('e_driver').value.trim(),freightFee:Number($('e_freightFee').value)||0,paymentType:$('e_paymentType').value,paymentPerson:$('e_paymentPerson').value.trim(),paymentAmount:Number($('e_paymentAmount').value)||0,paymentStatus:$('e_paymentStatus').value,status:$('e_status').value,note:$('e_note').value.trim()});localStorage.setItem('cenkar_orders',JSON.stringify(data));closeEdit();populateCities();renderActive();renderCompleted()}
+
+function del(id){if(confirm('Bu siparişi silmek istiyor musunuz?')){data=data.filter(x=>x.id!==id);localStorage.setItem('cenkar_orders',JSON.stringify(data));deleteFile(id).catch(()=>{});renderActive();renderCompleted()}}
+function chooseFile(id){selectedOrderForFile=id;$('fileInput').value='';$('fileInput').click()}
+async function handleFile(e){const file=e.target.files[0];if(!file||!selectedOrderForFile)return;try{await saveFile(selectedOrderForFile,file);alert('Teslim formu kaydedildi.');renderActive();renderCompleted()}catch(err){alert('Dosya kaydedilemedi. Lütfen tekrar deneyin.')}}
+async function viewFile(id){const f=await getFile(id);if(!f){alert('Bu sipariş için teslim formu yüklenmemiş.');return}const url=URL.createObjectURL(f.blob);window.open(url,'_blank');setTimeout(()=>URL.revokeObjectURL(url),60000)}
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function escAttr(s){return esc(s).replace(/`/g,'&#096;')}
+
+productChanged();$('date').value=new Date().toISOString().slice(0,10); if($('payWeek'))$('payWeek').value=weekKey(new Date().toISOString().slice(0,10));
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}
+// Robust event bindings (works even if inline handlers are restricted)
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => show(btn.dataset.section || (btn.textContent.includes('Siparişler') ? 'list' : btn.textContent.includes('Tamamlanan') ? 'completed' : btn.textContent.includes('Ödeme') ? 'payments' : 'new'), btn));
+  });
+  $('paymentType').addEventListener('change', togglePaymentFields);
+  $('e_paymentType').addEventListener('change', ()=>{let mine=$('e_paymentType').value==='Cenkar'a ait'; $('e_paymentPerson').disabled=!mine; $('e_paymentAmount').disabled=!mine;});
+  togglePaymentFields();
+});
+</script>
+
+<script>
+(function(){
+  // V5 shipment parser: accepts varied WhatsApp-style messages and extracts
+  // only the agreed fields: tractor, trailer, driver, TC, destination,
+  // freight, payment responsibility and VAT.
+  function norm(s){return (s||'').replace(/\u00a0/g,' ').trim();}
+  function find(patterns, text){
+    for(const p of patterns){ const m=text.match(p); if(m) return norm(m[1]); }
+    return '';
+  }
+  window.CenkarParseSevk = function(raw){
+    raw=norm(raw);
+    const lines=raw.split(/\n+/).map(norm).filter(Boolean);
+    let tractor=find([
+      /(?:ÇEKİCİ|CEKICI)\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i
+    ],raw);
+    let trailer=find([
+      /DORSE\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i
+    ],raw);
+    if(!tractor && !trailer){
+      const pair=raw.match(/([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})\s*\/\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
+      if(pair){tractor=norm(pair[1]); trailer=norm(pair[2]);}
+    }
+    let tc=find([/(?:TC|T\.C\.?)\s*[:\-]?\s*([0-9]{11})/i],raw);
+    let phone=find([/(?:TLF|TEL|TELEFON)\s*[:\-]?\s*(0?5\d{9})/i],raw); // not stored, only tolerated
+    let driver=find([
+      /(?:ŞOFÖR|SOFOR)\s*[:\-]?\s*([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜa-zçğıöşü]+(?:\s+[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜa-zçğıöşü]+){1,2})/i
+    ],raw);
+    if(!driver){
+      for(const l of lines){
+        if(/^(ÇEKİCİ|DORSE|TC|TLF|TEL|TELEFON|NAKLİYE|KDV|BUGÜN|YARIN|DİYARBAKIR|TEKİRDAĞ|KÖPÜK|STRAFOR)/i.test(l)) continue;
+        if(/^[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜa-zçğıöşü]+(?:\s+[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜa-zçğıöşü]+){1,2}$/.test(l)){ driver=l; break; }
+      }
+    }
+    let freight=find([
+      /(?:NAKLİYE|NAKLİYE ÜCRETİ|ÜCRET)\s*[:\-]?\s*([0-9][0-9\.\,]*)\s*(?:TL|₺)?/i,
+      /([0-9][0-9\.\,]*)\s*(?:bin\s*)?TL\s*(?:FATURA)?/i
+    ],raw);
+    if(/(\d+)\s*bin\s*tl/i.test(raw) && !freight){
+      const m=raw.match(/(\d+)\s*bin\s*tl/i); freight=(Number(m[1])*1000).toLocaleString('tr-TR')+" TL";
+    }
+    let vat = /KDV\s*(?:YOK|0|SIFIR)/i.test(raw) ? 'Yok' : (/KDV\s*(?:VAR|DAHİL|DAHIL)/i.test(raw) ? 'Var' : '');
+    let pay = /karşı\s*ödemeli|alıcı\s*öder|müşteri\s*öder/i.test(raw) ? 'Karşı ödemeli'
+             : (/fabrika.*(öder|gönderiyor)|cenkar.*(öder|ait)|biz.*öder/i.test(raw) ? "Cenkar'a ait" : '');
+    let destination='';
+    const dm=raw.match(/(?:VARIŞ|VARIS|TESLİMAT|TESLIMAT)\s*[:\-]?\s*([^\n]+)/i);
+    if(dm) destination=norm(dm[1]);
+    if(!destination){
+      const m=raw.match(/\b(Diyarbakır|Tekirdağ|İstanbul|Ankara|İzmir|Bursa|Kocaeli|Konya|Antalya|Adana|Mersin|Kayseri|Gaziantep|Şanlıurfa|Malatya|Elazığ|Van|Erzurum|Samsun|Trabzon|Sakarya|Manisa|Denizli|Eskişehir|Balıkesir|Hatay|Muğla|Aydın|Çanakkale|Kahramanmaraş|Osmaniye|Mardin|Batman|Siirt|Bitlis|Bingöl|Şırnak|Hakkari|Ağrı|Iğdır|Kars|Ardahan|Artvin|Rize|Giresun|Ordu|Tokat|Amasya|Çorum|Sinop|Kastamonu|Karabük|Bartın|Zonguldak|Düzce|Bolu|Bilecik|Kütahya|Uşak|Afyonkarahisar|Isparta|Burdur|Kırklareli|Edirne|Yalova|Tekirdağ|Çankırı|Kırıkkale|Nevşehir|Niğde|Aksaray|Karaman|Kırşehir|Yozgat|Sivas|Tunceli|Adıyaman|Kilis|Diyarbakır|Muş|Bitlis|Bingöl)\b[^\n]*/i);
+      if(m) destination=norm(m[0]);
+    }
+    return {tractor,trailer,driver,tc,destination,freight,pay,vat};
+  };
+})();
+</script>
+
+</body>
+</html>
