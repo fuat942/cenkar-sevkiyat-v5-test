@@ -28,6 +28,9 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cenkar">
 <link rel="apple-touch-icon" href="icon-192.png">
+<style id="cenkar-uppercase">
+input[type="text"], textarea { text-transform: uppercase; }
+</style>
 </head>
 <body>
 <header>
@@ -123,10 +126,10 @@ async function saveFile(orderId,file){const db=await openDB();return new Promise
 async function getFile(orderId){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const r=tx.objectStore(STORE).get(orderId);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}
 async function deleteFile(orderId){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(orderId);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 function show(which,btn){document.querySelectorAll('main>section').forEach(x=>x.classList.add('hidden'));$(which).classList.remove('hidden');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(which==='list'){populateCities();renderActive()}if(which==='completed'){populateCities();renderCompleted()}}
-function save(){let customer=$('customer').value.trim();if(!customer){alert('Müşteri adını girin.');return}let item={id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,city:$('city').value.trim(),district:$('district').value.trim(),sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,thickness:$('thickness').value,date:$('date').value,tractor:$('tractor').value.trim(),trailer:$('trailer').value.trim(),driver:$('driver').value.trim(),soforTel:$('soforTel').value.trim(),freight:Number($('freight').value)||0,freightPayment:$('freightPayment').value,vat:$('vat').value,note:$('note').value.trim(),completed:false};data.unshift(item);localStorage.setItem('cenkar_orders',JSON.stringify(data));alert('Sipariş kaydedildi.');document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');$('product').value='Yerden Isıtma';$('freightPayment').value='Bize ait';productChanged();$('date').value=new Date().toISOString().slice(0,10);}
-function productChanged(){let p=$('product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('foilBox').classList.toggle('hidden',!isY);$('densityBox').classList.toggle('hidden',!(isY||isM));$('thicknessBox').classList.toggle('hidden',!isM);if(isM&&!$('thickness').options.length){for(let i=1;i<=15;i++){let o=document.createElement('option');o.textContent=i;$('thickness').appendChild(o)}}}
+function save(){let customer=$('customer').value.trim();if(!customer){alert('Müşteri adını girin.');return}let item={id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,city:$('city').value.trim(),district:$('district').value.trim(),sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,thickness:$('thickness').value,date:$('date').value,tractor:$('tractor').value.trim(),trailer:$('trailer').value.trim(),driver:$('driver').value.trim(),soforTel:$('soforTel').value.trim(),freight:Number($('freight').value)||0,freightPayment:$('freightPayment').value,vat:$('vat').value,note:$('note').value.trim(),completed:false};data.unshift(item);localStorage.setItem('cenkar_orders',JSON.stringify(data));alert('Sipariş kaydedildi.');document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');$('product').value='Yerden Isıtma';$('freightPayment').value='Bize ait';productChanged();$('date').value='';}
+function productChanged(){let p=$('product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('foilBox').classList.toggle('hidden',!isY);$('densityBox').classList.toggle('hidden',!(isY||isM));$('thicknessBox').classList.toggle('hidden',!isM);let d=$('density');d.innerHTML='';if(isM){for(let i=8;i<=24;i+=2){let o=document.createElement('option');o.value=o.textContent=i;d.appendChild(o)}}else{for(let i=22;i<=40;i+=2){let o=document.createElement('option');o.value=o.textContent=i;d.appendChild(o)}}if(isM&&!$('thickness').options.length){for(let i=1;i<=15;i++){let o=document.createElement('option');o.value=o.textContent=i;$('thickness').appendChild(o)}}}
 function fillThicknessSelect(){if(!$('e_thickness').options.length){for(let i=1;i<=15;i++){let o=document.createElement('option');o.textContent=i;$('e_thickness').appendChild(o)}}}
-function editProductChanged(){let p=$('e_product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('e_foilBox').classList.toggle('hidden',!isY);$('e_densityBox').classList.toggle('hidden',!(isY||isM));$('e_thicknessBox').classList.toggle('hidden',!isM);if(isM)fillThicknessSelect()}
+function editProductChanged(){let p=$('e_product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('e_foilBox').classList.toggle('hidden',!isY);$('e_densityBox').classList.toggle('hidden',!(isY||isM));$('e_thicknessBox').classList.toggle('hidden',!isM);let d=$('e_density'),old=d.value;d.innerHTML='';if(isM){for(let i=8;i<=24;i+=2){let o=document.createElement('option');o.value=o.textContent=i;d.appendChild(o)}}else{for(let i=22;i<=40;i+=2){let o=document.createElement('option');o.value=o.textContent=i;d.appendChild(o)}}d.value=[...d.options].some(o=>o.value===old)?old:(isM?'8':'22');if(isM)fillThicknessSelect()}
 function populateCities(){let cities=[...new Set(data.map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));let opts='<option value="">Tüm iller</option>'+cities.map(x=>`<option value="${escAttr(x)}">${esc(x)}</option>`).join('');$('fcity').innerHTML=opts;$('doneCity').innerHTML=opts}
 function matches(x,q,city,prod){return(!q||[x.customer,x.phone,x.tractor,x.trailer,x.driver,x.city,x.district].join(' ').toLowerCase().includes(q))&&(!city||x.city===city)&&(!prod||x.product===prod)}
 function orderHTML(x){return `<div class="order"><div class="top"><b>${esc(x.customer)}</b>${x.completed?'<span class="badge done">Tamamlandı</span>':''}</div><div class="meta"><b>${esc(x.product)}</b>${x.product==='Yerden Isıtma'?' · '+esc(x.foil)+' · '+esc(x.density)+' DNS':''}${x.product==='Mantolama'?' · '+esc(x.thickness)+' cm · '+esc(x.density)+' DNS':''} · ${esc(x.city)||'-'} / ${esc(x.district)||'-'} · <b>${Number(x.sqm||0).toLocaleString('tr-TR')} m²</b><br>📅 ${x.date||'-'} · 🚛 ${esc(x.tractor)||'-'} / ${esc(x.trailer)||'-'} · 👤 ${esc(x.driver)||'-'}<br>📞 ${esc(x.phone)||'-'}<br>💰 Nakliye: ${x.freight?Number(x.freight).toLocaleString('tr-TR')+' TL':'-'} · ${esc(x.freightPayment||'Bize ait')} · KDV: ${esc(x.vat)||'-'}</div><div id="file-${x.id}" class="file-status"></div><div class="actions"><button onclick="shareOrder(${x.id})">📤 Paylaş</button><button onclick="openEdit(${x.id})">✏️ Düzenle</button>${!x.completed?`<button onclick="completeOrder(${x.id})">✅ Tamamlandı</button>`:''}<button onclick="chooseFile(${x.id})">📎 Teslim Formu</button>${x.completed?'<button onclick="viewFile('+x.id+')">📄 Formu Görüntüle</button>':''}<button class="danger" onclick="del(${x.id})">Sil</button></div></div>`}
@@ -138,7 +141,7 @@ function csvCell(v){let s=String(v??'');return '"'+s.replace(/"/g,'""')+'"'}
 function exportCompleted(){const q=($('doneSearch').value||'').toLowerCase(),city=$('doneCity').value,prod=$('doneProduct').value,from=$('exportFrom').value,to=$('exportTo').value;if(from&&to&&from>to){alert('Başlangıç tarihi bitiş tarihinden sonra olamaz.');return}const arr=data.filter(x=>x.completed).filter(x=>matches(x,q,city,prod)).filter(x=>(!from||!!x.date&&x.date>=from)&&(!to||!!x.date&&x.date<=to));if(!arr.length){alert('Seçtiğiniz kriterlere göre dışa aktarılacak tamamlanan sipariş yok.');return}const headers=['Tarih','Müşteri','Telefon','Ürün','Yoğunluk DNS','Folyolu/Folyosuz','Kalınlık cm','İl','İlçe','Miktar m²','Çekici','Dorse','Şoför','Şoför Tel','Nakliye Ücreti TL','Nakliye Ödeme','KDV','Not'];const rows=arr.map(x=>[x.date,x.customer,x.phone,x.product,x.density,x.foil,x.thickness,x.city,x.district,x.sqm,x.tractor,x.trailer,x.driver,x.soforTel,x.freight,x.freightPayment||'Bize ait',x.vat,x.note]);const csv='\uFEFF'+[headers,...rows].map(r=>r.map(csvCell).join(';')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;let suffix=(from||to)?('_'+(from||'baslangic')+'_'+(to||'bitis')):('_'+new Date().toISOString().slice(0,10));a.download='Cenkar_Tamamlanan_Siparisler'+suffix+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function openEdit(id){let x=data.find(a=>a.id===id);if(!x)return;editingId=id;['customer','phone','city','district','sqm','date','tractor','trailer','driver','soforTel','freight','note'].forEach(k=>{let el=$('e_'+k);if(el)el.value=x[k]??''});$('e_product').value=x.product||'Yerden Isıtma';$('e_density').value=x.density||'22';$('e_foil').value=x.foil||'Folyolu';fillThicknessSelect();$('e_thickness').value=x.thickness||'1';$('e_vat').value=x.vat||'Yok';$('e_freightPayment').value=x.freightPayment||'Bize ait';$('e_shipmentPaste').value='';editProductChanged();$('editModal').classList.add('show')}
 function closeEdit(){editingId=null;$('editModal').classList.remove('show')}
-function saveEdit(){if(!editingId)return;let x=data.find(a=>a.id===editingId);if(!x)return;let customer=$('e_customer').value.trim();if(!customer){alert('Müşteri adını girin.');return}Object.assign(x,{customer,contact:$('e_contact').value.trim(),phone:$('e_phone').value.trim(),product:$('e_product').value,city:$('e_city').value.trim(),district:$('e_district').value.trim(),sqm:Number($('e_sqm').value)||0,density:$('e_density').value,foil:$('e_foil').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:$('e_tractor').value.trim(),trailer:$('e_trailer').value.trim(),driver:$('e_driver').value.trim(),tc:$('e_soforTel').value.trim(),freight:Number($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:$('e_note').value.trim()});localStorage.setItem('cenkar_orders',JSON.stringify(data));closeEdit();populateCities();renderActive();renderCompleted()}
+function saveEdit(){if(!editingId)return;let x=data.find(a=>a.id===editingId);if(!x)return;let customer=$('e_customer').value.trim();if(!customer){alert('Müşteri adını girin.');return}Object.assign(x,{customer,phone:$('e_phone').value.trim(),product:$('e_product').value,city:$('e_city').value.trim(),district:$('e_district').value.trim(),sqm:Number($('e_sqm').value)||0,density:$('e_density').value,foil:$('e_foil').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:$('e_tractor').value.trim(),trailer:$('e_trailer').value.trim(),driver:$('e_driver').value.trim(),soforTel:$('e_soforTel').value.trim(),freight:Number($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:$('e_note').value.trim()});localStorage.setItem('cenkar_orders',JSON.stringify(data));closeEdit();populateCities();renderActive();renderCompleted()}
 function del(id){if(confirm('Bu siparişi silmek istiyor musunuz?')){data=data.filter(x=>x.id!==id);localStorage.setItem('cenkar_orders',JSON.stringify(data));deleteFile(id).catch(()=>{});renderActive();renderCompleted()}}
 function chooseFile(id){selectedOrderForFile=id;$('fileInput').value='';$('fileInput').click()}
 async function handleFile(e){const file=e.target.files[0];if(!file||!selectedOrderForFile)return;try{await saveFile(selectedOrderForFile,file);alert('Teslim formu kaydedildi.');renderActive();renderCompleted()}catch(err){alert('Dosya kaydedilemedi. Lütfen tekrar deneyin.')}}
@@ -240,7 +243,7 @@ function parseShipmentText(raw){
   return {tractor,trailer,driver,soforTel,city,district,freight,vat};
 }
 function normPlate(s){return s.replace(/\s+/g,' ').trim().toUpperCase()}function cleanName(s){return s.replace(/\s+/g,' ').replace(/\s+(Şoför Tel|TLF|TEL|TELEFON).*$/i,'').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}function escAttr(s){return esc(s).replace(/`/g,'&#096;')}
-productChanged();$('date').value=new Date().toISOString().slice(0,10);
+productChanged();$('date').value='';
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}
 // Robust event bindings (works even if inline handlers are restricted)
@@ -250,44 +253,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+<script id="cenkar-uppercase-js">
+document.addEventListener('input', function(e){
+  const x=e.target;
+  if(!x || !(x.matches('input[type="text"]') || x.matches('textarea'))) return;
+  const s=((x.id||'')+' '+(x.name||'')+' '+(x.placeholder||'')).toLowerCase();
+  if(s.includes('tel') || s.includes('telefon')) return;
+  x.value=x.value.toLocaleUpperCase('tr-TR');
+});
+</script>
 </body>
 </html>
-
-<style>
-input[type="text"], textarea { text-transform: uppercase; }
-</style>
-<script>
-document.addEventListener('input',function(e){
- const x=e.target;
- if(x && (x.matches('input[type="text"]') || x.matches('textarea'))){
-   const s=((x.name||'')+' '+(x.id||'')+' '+(x.placeholder||'')).toLowerCase();
-   if(!s.includes('tel')) x.value=x.value.toLocaleUpperCase('tr-TR');
- }
-});
-document.addEventListener('DOMContentLoaded',function(){
- document.querySelectorAll('input[type="date"]').forEach(function(x){
-   const s=((x.name||'')+' '+(x.id||'')+' '+(x.placeholder||'')).toLowerCase();
-   if(s.includes('sevk') || s.includes('shipment')) x.value='';
- });
-});
-</script>
-
-<script>
-document.addEventListener('click',function(e){
- const b=e.target.closest('[data-edit-completed],[data-action="edit"],.edit-completed');
- if(!b) return;
- e.preventDefault();
- const id=b.dataset.id || b.dataset.orderId;
- if(!id) return;
- const orders=JSON.parse(localStorage.getItem('cenkarOrders')||'[]');
- const i=orders.findIndex(o=>String(o.id)===String(id));
- if(i<0) return;
- const o=orders[i];
- const v=prompt('MÜŞTERİ',o.customer||o.musteri||'');
- if(v===null)return;
- o.customer=v.toLocaleUpperCase('tr-TR');
- orders[i]=o;
- localStorage.setItem('cenkarOrders',JSON.stringify(orders));
- location.reload();
-});
-</script>
