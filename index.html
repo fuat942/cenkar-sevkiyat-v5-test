@@ -31,6 +31,10 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 <style id="cenkar-uppercase">
 input[type="text"], textarea { text-transform: uppercase; }
 </style>
+<style id="cenkar-uppercase-css">
+input[type="text"], input[type="search"], textarea { text-transform: uppercase !important; }
+</style>
+
 </head>
 <body>
 <header>
@@ -262,5 +266,29 @@ document.addEventListener('input', function(e){
   x.value=x.value.toLocaleUpperCase('tr-TR');
 });
 </script>
+
+<script id="cenkar-uppercase-final">
+(function(){
+  function upper(el){
+    if(!el) return;
+    if(el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
+    const t=(el.type||'text').toLowerCase();
+    if(['date','number','tel','email','password','time'].includes(t)) return;
+    const s=((el.id||'')+' '+(el.name||'')+' '+(el.placeholder||'')).toLowerCase();
+    if(s.includes('tel') || s.includes('telefon')) return;
+    const start=el.selectionStart, end=el.selectionEnd;
+    el.value=el.value.toLocaleUpperCase('tr-TR');
+    try { if(document.activeElement===el && start!==null) el.setSelectionRange(start,end); } catch(_){}
+  }
+  document.addEventListener('input', function(e){ upper(e.target); }, true);
+  document.addEventListener('change', function(e){ upper(e.target); }, true);
+  document.addEventListener('paste', function(){
+    setTimeout(function(){
+      document.querySelectorAll('input,textarea').forEach(upper);
+    }, 0);
+  }, true);
+})();
+</script>
+
 </body>
 </html>
