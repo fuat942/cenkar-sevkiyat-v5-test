@@ -252,3 +252,42 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
+<style>
+input[type="text"], textarea { text-transform: uppercase; }
+</style>
+<script>
+document.addEventListener('input',function(e){
+ const x=e.target;
+ if(x && (x.matches('input[type="text"]') || x.matches('textarea'))){
+   const s=((x.name||'')+' '+(x.id||'')+' '+(x.placeholder||'')).toLowerCase();
+   if(!s.includes('tel')) x.value=x.value.toLocaleUpperCase('tr-TR');
+ }
+});
+document.addEventListener('DOMContentLoaded',function(){
+ document.querySelectorAll('input[type="date"]').forEach(function(x){
+   const s=((x.name||'')+' '+(x.id||'')+' '+(x.placeholder||'')).toLowerCase();
+   if(s.includes('sevk') || s.includes('shipment')) x.value='';
+ });
+});
+</script>
+
+<script>
+document.addEventListener('click',function(e){
+ const b=e.target.closest('[data-edit-completed],[data-action="edit"],.edit-completed');
+ if(!b) return;
+ e.preventDefault();
+ const id=b.dataset.id || b.dataset.orderId;
+ if(!id) return;
+ const orders=JSON.parse(localStorage.getItem('cenkarOrders')||'[]');
+ const i=orders.findIndex(o=>String(o.id)===String(id));
+ if(i<0) return;
+ const o=orders[i];
+ const v=prompt('MÜŞTERİ',o.customer||o.musteri||'');
+ if(v===null)return;
+ o.customer=v.toLocaleUpperCase('tr-TR');
+ orders[i]=o;
+ localStorage.setItem('cenkarOrders',JSON.stringify(orders));
+ location.reload();
+});
+</script>
