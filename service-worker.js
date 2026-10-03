@@ -1,4 +1,4 @@
-const CACHE_NAME = "cenkar-v5-tel-v1";
+const CACHE_NAME = "cenkar-v5-v4-sofortel";
 const APP_SHELL = ["./", "./index.html"];
 
 self.addEventListener("install", event => {

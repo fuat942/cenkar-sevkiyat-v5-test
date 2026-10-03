@@ -43,7 +43,7 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 <div class="card">
 <div class="grid">
 <div class="full"><label>Müşteri</label><input id="customer" placeholder="Müşteri adı"></div>
-<div><label>Ürün çeşidi</label><select id="product" onchange="producŞoför Telhanged()"><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div>
+<div><label>Ürün çeşidi</label><select id="product" onchange="productChanged()"><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div>
 <div id="densityBox"><label>Yoğunluk (DNS)</label><select id="density"><option>22</option><option>24</option><option>26</option><option>28</option><option>30</option><option>32</option><option>34</option><option>36</option><option>38</option><option>40</option></select></div>
 <div><label>İl</label><input id="city" placeholder="İl"></div>
 <div><label>İlçe</label><input id="district" placeholder="İlçe"></div>
@@ -55,7 +55,7 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 <div><label>Çekici plakası</label><input id="tractor" placeholder="21 ABC 123"></div>
 <div><label>Dorse plakası</label><input id="trailer" placeholder="21 XYZ 456"></div>
 <div><label>Şoför</label><input id="driver" placeholder="Ad Soyad"></div>
-<div><label>Şoför Tel</label><input id="Şoför Tel" inputmode="numeric" maxlength="11" placeholder="11 hane"></div>
+<div><label>Şoför Tel</label><input id="soforTel" inputmode="numeric" maxlength="11" placeholder="11 hane"></div>
 <div><label>Nakliye ücreti (TL)</label><input id="freight" type="number" inputmode="decimal" placeholder="0"></div>
 <div><label>Nakliye ödeme şekli</label><select id="freightPayment"><option value="Bize ait">Bize ait</option><option value="Karşı ödemeli">Karşı ödemeli</option></select></div>
 <div><label>KDV</label><select id="vat"><option>Yok</option><option>Var</option></select></div>
@@ -75,7 +75,7 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 
 <section id="completed" class="hidden">
 <div class="summary"><div class="stat"><b id="doneCount">0</b><span>Tamamlanan</span></div><div class="stat"><b id="doneTotal">0</b><span>Tamamlanan m²</span></div><div class="stat"><b id="doneForms">0</b><span>Teslim Formu</span></div></div>
-<div class="card"><div class="filters"><input id="doneSearch" placeholder="🔎 Tamamlananlarda ara" oninput="renderCompleted()"><select id="doneCity" onchange="renderCompleted()"><option value="">Tüm iller</option></select><select id="doneProduct" onchange="renderCompleted()"><option value="">Tüm ürünler</option><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select><label class="date-filter"><span>Başlangıç</span><input id="exportFrom" type="date"></label><label class="date-filter"><span>Bitiş</span><input id="exportTo" type="date"></label><button type="button" class="primary" onclick="exporŞoför Telompleted()">📤 Dışa Aktar</button></div></div><div id="completedOrders"></div>
+<div class="card"><div class="filters"><input id="doneSearch" placeholder="🔎 Tamamlananlarda ara" oninput="renderCompleted()"><select id="doneCity" onchange="renderCompleted()"><option value="">Tüm iller</option></select><select id="doneProduct" onchange="renderCompleted()"><option value="">Tüm ürünler</option><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select><label class="date-filter"><span>Başlangıç</span><input id="exportFrom" type="date"></label><label class="date-filter"><span>Bitiş</span><input id="exportTo" type="date"></label><button type="button" class="primary" onclick="exportCompleted()">📤 Dışa Aktar</button></div></div><div id="completedOrders"></div>
 </section>
 </main>
 
@@ -83,9 +83,9 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 <div class="modal-head"><h2>✏️ Siparişi Düzenle</h2><button type="button" class="close" onclick="closeEdit()">×</button></div>
 <div class="grid">
 <div class="full"><label>Müşteri</label><input id="e_customer"></div><div><label>İrtibat Telefonu</label><input id="e_phone" type="tel"></div>
-<div><label>Ürün çeşidi</label><select id="e_product" onchange="editProducŞoför Telhanged()"><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div><div><label>İl</label><input id="e_city"></div><div><label>İlçe</label><input id="e_district"></div><div><label>Miktar (m²)</label><input id="e_sqm" type="number" inputmode="decimal"></div>
+<div><label>Ürün çeşidi</label><select id="e_product" onchange="editProductChanged()"><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div><div><label>İl</label><input id="e_city"></div><div><label>İlçe</label><input id="e_district"></div><div><label>Miktar (m²)</label><input id="e_sqm" type="number" inputmode="decimal"></div>
 <div id="e_densityBox"><label>Yoğunluk (DNS)</label><select id="e_density"><option>22</option><option>24</option><option>26</option><option>28</option><option>30</option><option>32</option><option>34</option><option>36</option><option>38</option><option>40</option></select></div><div id="e_foilBox"><label>Yerden Isıtma</label><select id="e_foil"><option>Folyolu</option><option>Folyosuz</option></select></div><div id="e_thicknessBox" class="hidden"><label>Kalınlık (cm)</label><select id="e_thickness"></select></div><div><label>Sevkiyat tarihi</label><input id="e_date" type="date"></div>
-<div><label>Çekici plakası</label><input id="e_tractor"></div><div><label>Dorse plakası</label><input id="e_trailer"></div><div><label>Şoför</label><input id="e_driver"></div><div><label>Şoför Tel</label><input id="e_Şoför Tel" inputmode="numeric" maxlength="11"></div><div><label>Nakliye ücreti (TL)</label><input id="e_freight" type="number" inputmode="decimal"></div><div><label>Nakliye ödeme şekli</label><select id="e_freightPayment"><option value="Bize ait">Bize ait</option><option value="Karşı ödemeli">Karşı ödemeli</option></select></div><div><label>KDV</label><select id="e_vat"><option>Yok</option><option>Var</option></select></div>
+<div><label>Çekici plakası</label><input id="e_tractor"></div><div><label>Dorse plakası</label><input id="e_trailer"></div><div><label>Şoför</label><input id="e_driver"></div><div><label>Şoför Tel</label><input id="e_soforTel" inputmode="numeric" maxlength="11"></div><div><label>Nakliye ücreti (TL)</label><input id="e_freight" type="number" inputmode="decimal"></div><div><label>Nakliye ödeme şekli</label><select id="e_freightPayment"><option value="Bize ait">Bize ait</option><option value="Karşı ödemeli">Karşı ödemeli</option></select></div><div><label>KDV</label><select id="e_vat"><option>Yok</option><option>Var</option></select></div>
 <div class="full"><label>Sevk Bilgilerini Yapıştır</label><textarea id="e_shipmentPaste" placeholder="Yeni sevk mesajını buraya yapıştırın..."></textarea><button type="button" class="primary" style="margin-top:8px" onclick="parseShipment('edit')">📋 Yapıştır → Bilgileri Doldur</button></div>
 <div class="full"><label>Not</label><textarea id="e_note"></textarea></div></div>
 <div class="modal-actions"><button type="button" class="cancel-edit" onclick="closeEdit()">Vazgeç</button><button type="button" class="save-edit" onclick="saveEdit()">Değişiklikleri Kaydet</button></div>
@@ -97,7 +97,7 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 <div class="modal-head"><h2>✏️ Siparişi Düzenle</h2><button type="button" class="close" onclick="closeEdit()">×</button></div>
 <div class="grid">
 <div class="full"><label>Müşteri</label><input id="e_customer"></div>
-<div><label>Ürün çeşidi</label><select id="e_product" onchange="editProducŞoför Telhanged()"><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div>
+<div><label>Ürün çeşidi</label><select id="e_product" onchange="editProductChanged()"><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select></div>
 <div><label>İl</label><input id="e_city" placeholder="İl adı"></div>
 <div><label>Miktar (m²)</label><input id="e_sqm" type="number" inputmode="decimal"></div>
 <div id="e_densityBox"><label>Yoğunluk (DNS)</label><select id="e_density"><option>22</option><option>24</option><option>26</option><option>28</option><option>30</option><option>32</option><option>34</option><option>36</option><option>38</option><option>40</option></select></div>
@@ -115,51 +115,33 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 </div></div>
 <input id="fileInput" type="file" accept="image/*,.pdf" class="hidden" onchange="handleFile(event)">
 
-
-function extractDriverPhone(text){
-  const labeled = text.match(/(?:TLF|TEL|TELEFON|ŞOFÖR\s*TEL|SOFOR\s*TEL)\s*[:\-]?\s*(0?\s*5\d{2}[\s.\-]?\d{3}[\s.\-]?\d{2}[\s.\-]?\d{2})/i);
-  if (labeled) return labeled[1].replace(/[^\d+]/g,'');
-  const mobile = text.match(/(?:^|[^\d])((?:\+?90\s*)?5\d{2}[\s.\-]?\d{3}[\s.\-]?\d{2}[\s.\-]?\d{2})(?!\d)/);
-  return mobile ? mobile[1].replace(/[^\d+]/g,'') : '';
-}
-
-
-function setDriverPhoneFromShipmentText(text){
-  const p = extractDriverPhone(text || "");
-  if(!p) return;
-  const el = document.querySelector(
-    'input[name="soforTel"], input[id="soforTel"], input[name="driverPhone"], input[id="driverPhone"], input[placeholder*="Şoför Tel"], input[placeholder*="Şoför tel"]'
-  );
-  if(el){ el.value = p; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
-}
-
 <script>
-let data=JSON.parse(localStorage.getItem('cenkar_orders')||'[]'); const $=id=>document.getElementById(id); let selectedOrderForFile=null,editingId=null;
+let data=JSON.parse(localStorage.getItem('cenkar_orders')||'[]'); data=data.map(x=>{if(!x.soforTel && x.tc)x.soforTel=x.tc; delete x.tc; return x;}); localStorage.setItem('cenkar_orders',JSON.stringify(data)); const $=id=>document.getElementById(id); let selectedOrderForFile=null,editingId=null;
 const DB_NAME='cenkar_files_db',DB_VERSION=1,STORE='delivery_forms';
 function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'orderId'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function saveFile(orderId,file){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({orderId,name:file.name,type:file.type,blob:file,updatedAt:Date.now()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 async function getFile(orderId){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const r=tx.objectStore(STORE).get(orderId);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}
 async function deleteFile(orderId){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(orderId);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 function show(which,btn){document.querySelectorAll('main>section').forEach(x=>x.classList.add('hidden'));$(which).classList.remove('hidden');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(which==='list'){populateCities();renderActive()}if(which==='completed'){populateCities();renderCompleted()}}
-function save(){let customer=$('customer').value.trim();if(!customer){alert('Müşteri adını girin.');return}let item={id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,city:$('city').value.trim(),district:$('district').value.trim(),sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,thickness:$('thickness').value,date:$('date').value,tractor:$('tractor').value.trim(),trailer:$('trailer').value.trim(),driver:$('driver').value.trim(),Şoför Tel:$('Şoför Tel').value.trim(),freight:Number($('freight').value)||0,freightPayment:$('freightPayment').value,vat:$('vat').value,note:$('note').value.trim(),completed:false};data.unshift(item);localStorage.setItem('cenkar_orders',JSON.stringify(data));alert('Sipariş kaydedildi.');document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');$('product').value='Yerden Isıtma';$('freightPayment').value='Bize ait';producŞoför Telhanged();$('date').value=new Date().toISOString().slice(0,10);}
-function producŞoför Telhanged(){let p=$('product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('foilBox').classList.toggle('hidden',!isY);$('densityBox').classList.toggle('hidden',!(isY||isM));$('thicknessBox').classList.toggle('hidden',!isM);if(isM&&!$('thickness').options.length){for(let i=1;i<=15;i++){let o=document.createElement('option');o.texŞoför Telontent=i;$('thickness').appendChild(o)}}}
-function fillThicknessSelect(){if(!$('e_thickness').options.length){for(let i=1;i<=15;i++){let o=document.createElement('option');o.texŞoför Telontent=i;$('e_thickness').appendChild(o)}}}
-function editProducŞoför Telhanged(){let p=$('e_product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('e_foilBox').classList.toggle('hidden',!isY);$('e_densityBox').classList.toggle('hidden',!(isY||isM));$('e_thicknessBox').classList.toggle('hidden',!isM);if(isM)fillThicknessSelect()}
+function save(){let customer=$('customer').value.trim();if(!customer){alert('Müşteri adını girin.');return}let item={id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,city:$('city').value.trim(),district:$('district').value.trim(),sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,thickness:$('thickness').value,date:$('date').value,tractor:$('tractor').value.trim(),trailer:$('trailer').value.trim(),driver:$('driver').value.trim(),soforTel:$('soforTel').value.trim(),freight:Number($('freight').value)||0,freightPayment:$('freightPayment').value,vat:$('vat').value,note:$('note').value.trim(),completed:false};data.unshift(item);localStorage.setItem('cenkar_orders',JSON.stringify(data));alert('Sipariş kaydedildi.');document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');$('product').value='Yerden Isıtma';$('freightPayment').value='Bize ait';productChanged();$('date').value=new Date().toISOString().slice(0,10);}
+function productChanged(){let p=$('product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('foilBox').classList.toggle('hidden',!isY);$('densityBox').classList.toggle('hidden',!(isY||isM));$('thicknessBox').classList.toggle('hidden',!isM);if(isM&&!$('thickness').options.length){for(let i=1;i<=15;i++){let o=document.createElement('option');o.textContent=i;$('thickness').appendChild(o)}}}
+function fillThicknessSelect(){if(!$('e_thickness').options.length){for(let i=1;i<=15;i++){let o=document.createElement('option');o.textContent=i;$('e_thickness').appendChild(o)}}}
+function editProductChanged(){let p=$('e_product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('e_foilBox').classList.toggle('hidden',!isY);$('e_densityBox').classList.toggle('hidden',!(isY||isM));$('e_thicknessBox').classList.toggle('hidden',!isM);if(isM)fillThicknessSelect()}
 function populateCities(){let cities=[...new Set(data.map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));let opts='<option value="">Tüm iller</option>'+cities.map(x=>`<option value="${escAttr(x)}">${esc(x)}</option>`).join('');$('fcity').innerHTML=opts;$('doneCity').innerHTML=opts}
-function maŞoför Telhes(x,q,city,prod){return(!q||[x.customer,x.phone,x.tractor,x.trailer,x.driver,x.city,x.district].join(' ').toLowerCase().includes(q))&&(!city||x.city===city)&&(!prod||x.product===prod)}
+function matches(x,q,city,prod){return(!q||[x.customer,x.phone,x.tractor,x.trailer,x.driver,x.city,x.district].join(' ').toLowerCase().includes(q))&&(!city||x.city===city)&&(!prod||x.product===prod)}
 function orderHTML(x){return `<div class="order"><div class="top"><b>${esc(x.customer)}</b>${x.completed?'<span class="badge done">Tamamlandı</span>':''}</div><div class="meta"><b>${esc(x.product)}</b>${x.product==='Yerden Isıtma'?' · '+esc(x.foil)+' · '+esc(x.density)+' DNS':''}${x.product==='Mantolama'?' · '+esc(x.thickness)+' cm · '+esc(x.density)+' DNS':''} · ${esc(x.city)||'-'} / ${esc(x.district)||'-'} · <b>${Number(x.sqm||0).toLocaleString('tr-TR')} m²</b><br>📅 ${x.date||'-'} · 🚛 ${esc(x.tractor)||'-'} / ${esc(x.trailer)||'-'} · 👤 ${esc(x.driver)||'-'}<br>📞 ${esc(x.phone)||'-'}<br>💰 Nakliye: ${x.freight?Number(x.freight).toLocaleString('tr-TR')+' TL':'-'} · ${esc(x.freightPayment||'Bize ait')} · KDV: ${esc(x.vat)||'-'}</div><div id="file-${x.id}" class="file-status"></div><div class="actions"><button onclick="shareOrder(${x.id})">📤 Paylaş</button><button onclick="openEdit(${x.id})">✏️ Düzenle</button>${!x.completed?`<button onclick="completeOrder(${x.id})">✅ Tamamlandı</button>`:''}<button onclick="chooseFile(${x.id})">📎 Teslim Formu</button>${x.completed?'<button onclick="viewFile('+x.id+')">📄 Formu Görüntüle</button>':''}<button class="danger" onclick="del(${x.id})">Sil</button></div></div>`}
-function renderActive(){let q=$('search').value.toLowerCase(),city=$('fcity').value,prod=$('fproduct').value,arr=data.filter(x=>!x.completed&&maŞoför Telhes(x,q,city,prod));let active=data.filter(x=>!x.completed);$('count').texŞoför Telontent=active.length;$('total').texŞoför Telontent=active.reduce((a,x)=>a+x.sqm,0).toLocaleString('tr-TR');$('pending').texŞoför Telontent=active.filter(x=>!x.tractor||!x.trailer||!x.driver).length;$('orders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Aktif sipariş bulunamadı.</div>';refreshFileStatuses(arr)}
-async function renderCompleted(){let q=$('doneSearch').value.toLowerCase(),city=$('doneCity').value,prod=$('doneProduct').value,all=data.filter(x=>x.completed),arr=all.filter(x=>maŞoför Telhes(x,q,city,prod));$('doneCount').texŞoför Telontent=all.length;$('doneTotal').texŞoför Telontent=all.reduce((a,x)=>a+x.sqm,0).toLocaleString('tr-TR');let formCount=0;for(const x of all){if(await getFile(x.id))formCount++}$('doneForms').texŞoför Telontent=formCount;$('completedOrders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Tamamlanan sipariş bulunamadı.</div>';refreshFileStatuses(arr)}
-async function refreshFileStatuses(arr){for(const x of arr){const f=await getFile(x.id);const el=$('file-'+x.id);if(el)el.texŞoför Telontent=f?'📎 Teslim formu: '+f.name:''}}
+function renderActive(){let q=$('search').value.toLowerCase(),city=$('fcity').value,prod=$('fproduct').value,arr=data.filter(x=>!x.completed&&matches(x,q,city,prod));let active=data.filter(x=>!x.completed);$('count').textContent=active.length;$('total').textContent=active.reduce((a,x)=>a+x.sqm,0).toLocaleString('tr-TR');$('pending').textContent=active.filter(x=>!x.tractor||!x.trailer||!x.driver).length;$('orders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Aktif sipariş bulunamadı.</div>';refreshFileStatuses(arr)}
+async function renderCompleted(){let q=$('doneSearch').value.toLowerCase(),city=$('doneCity').value,prod=$('doneProduct').value,all=data.filter(x=>x.completed),arr=all.filter(x=>matches(x,q,city,prod));$('doneCount').textContent=all.length;$('doneTotal').textContent=all.reduce((a,x)=>a+x.sqm,0).toLocaleString('tr-TR');let formCount=0;for(const x of all){if(await getFile(x.id))formCount++}$('doneForms').textContent=formCount;$('completedOrders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Tamamlanan sipariş bulunamadı.</div>';refreshFileStatuses(arr)}
+async function refreshFileStatuses(arr){for(const x of arr){const f=await getFile(x.id);const el=$('file-'+x.id);if(el)el.textContent=f?'📎 Teslim formu: '+f.name:''}}
 function completeOrder(id){let x=data.find(a=>a.id===id);if(!x)return;if(confirm('Bu siparişi Tamamlananlar bölümüne taşıyalım mı?')){x.completed=true;localStorage.setItem('cenkar_orders',JSON.stringify(data));renderActive();renderCompleted()}}
 function csvCell(v){let s=String(v??'');return '"'+s.replace(/"/g,'""')+'"'}
-function exporŞoför Telompleted(){const q=($('doneSearch').value||'').toLowerCase(),city=$('doneCity').value,prod=$('doneProduct').value,from=$('exportFrom').value,to=$('exportTo').value;if(from&&to&&from>to){alert('Başlangıç tarihi bitiş tarihinden sonra olamaz.');return}const arr=data.filter(x=>x.completed).filter(x=>maŞoför Telhes(x,q,city,prod)).filter(x=>(!from||!!x.date&&x.date>=from)&&(!to||!!x.date&&x.date<=to));if(!arr.length){alert('Seçtiğiniz kriterlere göre dışa aktarılacak tamamlanan sipariş yok.');return}const headers=['Tarih','Müşteri','Telefon','Ürün','Yoğunluk DNS','Folyolu/Folyosuz','Kalınlık cm','İl','İlçe','Miktar m²','Çekici','Dorse','Şoför','Şoför Tel','Nakliye Ücreti TL','Nakliye Ödeme','KDV','Not'];const rows=arr.map(x=>[x.date,x.customer,x.phone,x.product,x.density,x.foil,x.thickness,x.city,x.district,x.sqm,x.tractor,x.trailer,x.driver,x.Şoför Tel,x.freight,x.freightPayment||'Bize ait',x.vat,x.note]);const csv='\uFEFF'+[headers,...rows].map(r=>r.map(csvCell).join(';')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;let suffix=(from||to)?('_'+(from||'baslangic')+'_'+(to||'bitis')):('_'+new Date().toISOString().slice(0,10));a.download='Cenkar_Tamamlanan_Siparisler'+suffix+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function openEdit(id){let x=data.find(a=>a.id===id);if(!x)return;editingId=id;['customer','phone','city','district','sqm','date','tractor','trailer','driver','Şoför Tel','freight','note'].forEach(k=>{let el=$('e_'+k);if(el)el.value=x[k]??''});$('e_product').value=x.product||'Yerden Isıtma';$('e_density').value=x.density||'22';$('e_foil').value=x.foil||'Folyolu';fillThicknessSelect();$('e_thickness').value=x.thickness||'1';$('e_vat').value=x.vat||'Yok';$('e_freightPayment').value=x.freightPayment||'Bize ait';$('e_shipmentPaste').value='';editProducŞoför Telhanged();$('editModal').classList.add('show')}
+function exportCompleted(){const q=($('doneSearch').value||'').toLowerCase(),city=$('doneCity').value,prod=$('doneProduct').value,from=$('exportFrom').value,to=$('exportTo').value;if(from&&to&&from>to){alert('Başlangıç tarihi bitiş tarihinden sonra olamaz.');return}const arr=data.filter(x=>x.completed).filter(x=>matches(x,q,city,prod)).filter(x=>(!from||!!x.date&&x.date>=from)&&(!to||!!x.date&&x.date<=to));if(!arr.length){alert('Seçtiğiniz kriterlere göre dışa aktarılacak tamamlanan sipariş yok.');return}const headers=['Tarih','Müşteri','Telefon','Ürün','Yoğunluk DNS','Folyolu/Folyosuz','Kalınlık cm','İl','İlçe','Miktar m²','Çekici','Dorse','Şoför','Şoför Tel','Nakliye Ücreti TL','Nakliye Ödeme','KDV','Not'];const rows=arr.map(x=>[x.date,x.customer,x.phone,x.product,x.density,x.foil,x.thickness,x.city,x.district,x.sqm,x.tractor,x.trailer,x.driver,x.soforTel,x.freight,x.freightPayment||'Bize ait',x.vat,x.note]);const csv='\uFEFF'+[headers,...rows].map(r=>r.map(csvCell).join(';')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;let suffix=(from||to)?('_'+(from||'baslangic')+'_'+(to||'bitis')):('_'+new Date().toISOString().slice(0,10));a.download='Cenkar_Tamamlanan_Siparisler'+suffix+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function openEdit(id){let x=data.find(a=>a.id===id);if(!x)return;editingId=id;['customer','phone','city','district','sqm','date','tractor','trailer','driver','soforTel','freight','note'].forEach(k=>{let el=$('e_'+k);if(el)el.value=x[k]??''});$('e_product').value=x.product||'Yerden Isıtma';$('e_density').value=x.density||'22';$('e_foil').value=x.foil||'Folyolu';fillThicknessSelect();$('e_thickness').value=x.thickness||'1';$('e_vat').value=x.vat||'Yok';$('e_freightPayment').value=x.freightPayment||'Bize ait';$('e_shipmentPaste').value='';editProductChanged();$('editModal').classList.add('show')}
 function closeEdit(){editingId=null;$('editModal').classList.remove('show')}
-function saveEdit(){if(!editingId)return;let x=data.find(a=>a.id===editingId);if(!x)return;let customer=$('e_customer').value.trim();if(!customer){alert('Müşteri adını girin.');return}Object.assign(x,{customer,contact:$('e_contact').value.trim(),phone:$('e_phone').value.trim(),product:$('e_product').value,city:$('e_city').value.trim(),district:$('e_district').value.trim(),sqm:Number($('e_sqm').value)||0,density:$('e_density').value,foil:$('e_foil').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:$('e_tractor').value.trim(),trailer:$('e_trailer').value.trim(),driver:$('e_driver').value.trim(),Şoför Tel:$('e_Şoför Tel').value.trim(),freight:Number($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:$('e_note').value.trim()});localStorage.setItem('cenkar_orders',JSON.stringify(data));closeEdit();populateCities();renderActive();renderCompleted()}
-function del(id){if(confirm('Bu siparişi silmek istiyor musunuz?')){data=data.filter(x=>x.id!==id);localStorage.setItem('cenkar_orders',JSON.stringify(data));deleteFile(id).caŞoför Telh(()=>{});renderActive();renderCompleted()}}
+function saveEdit(){if(!editingId)return;let x=data.find(a=>a.id===editingId);if(!x)return;let customer=$('e_customer').value.trim();if(!customer){alert('Müşteri adını girin.');return}Object.assign(x,{customer,contact:$('e_contact').value.trim(),phone:$('e_phone').value.trim(),product:$('e_product').value,city:$('e_city').value.trim(),district:$('e_district').value.trim(),sqm:Number($('e_sqm').value)||0,density:$('e_density').value,foil:$('e_foil').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:$('e_tractor').value.trim(),trailer:$('e_trailer').value.trim(),driver:$('e_driver').value.trim(),tc:$('e_soforTel').value.trim(),freight:Number($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:$('e_note').value.trim()});localStorage.setItem('cenkar_orders',JSON.stringify(data));closeEdit();populateCities();renderActive();renderCompleted()}
+function del(id){if(confirm('Bu siparişi silmek istiyor musunuz?')){data=data.filter(x=>x.id!==id);localStorage.setItem('cenkar_orders',JSON.stringify(data));deleteFile(id).catch(()=>{});renderActive();renderCompleted()}}
 function chooseFile(id){selectedOrderForFile=id;$('fileInput').value='';$('fileInput').click()}
-async function handleFile(e){const file=e.target.files[0];if(!file||!selectedOrderForFile)return;try{await saveFile(selectedOrderForFile,file);alert('Teslim formu kaydedildi.');renderActive();renderCompleted()}caŞoför Telh(err){alert('Dosya kaydedilemedi. Lütfen tekrar deneyin.')}}
+async function handleFile(e){const file=e.target.files[0];if(!file||!selectedOrderForFile)return;try{await saveFile(selectedOrderForFile,file);alert('Teslim formu kaydedildi.');renderActive();renderCompleted()}catch(err){alert('Dosya kaydedilemedi. Lütfen tekrar deneyin.')}}
 async function viewFile(id){const f=await getFile(id);if(!f){alert('Bu sipariş için teslim formu yüklenmemiş.');return}const url=URL.createObjectURL(f.blob);window.open(url,'_blank');setTimeout(()=>URL.revokeObjectURL(url),60000)}
 function parseOrder(){
   const raw=$('orderPaste').value.trim();
@@ -167,13 +149,13 @@ function parseOrder(){
   const p=parseOrderText(raw);
   if(p.customer)$('customer').value=p.customer;
     if(p.phone)$('phone').value=p.phone;
-  if(p.product){$('product').value=p.product;producŞoför Telhanged();}
+  if(p.product){$('product').value=p.product;productChanged();}
   if(p.city)$('city').value=p.city;
   if(p.district)$('district').value=p.district;
   if(p.sqm)$('sqm').value=p.sqm;
   if(p.density)$('density').value=p.density;
   if(p.foil)$('foil').value=p.foil;
-  if(p.thickness){producŞoför Telhanged();$('thickness').value=p.thickness;}
+  if(p.thickness){productChanged();$('thickness').value=p.thickness;}
   if(p.date)$('date').value=p.date;
   alert('Bulunan sipariş bilgileri forma aktarıldı. Kaydetmeden önce kontrol edebilirsiniz.');
 }
@@ -181,67 +163,68 @@ function parseOrderText(raw){
   const t=raw.replace(/\r/g,'\n').replace(/[ \t]+/g,' ').replace(/\n+/g,'\n').trim();
   let customer='',phone='',product='',city='',district='',sqm='',density='',foil='',thickness='',date='';
   let m;
-  m=t.maŞoför Telh(/(?:MÜŞTERİ|MUSTERI|MÜŞTERİ ADI|MUSTERI ADI)\s*[:\-]\s*([^\n]+)/i); if(m) customer=cleanName(m[1]);
-  m=t.maŞoför Telh(/(?:TEL|TLF|TELEFON|CEP)\s*[:\-]?\s*(0?5\d{9})/i); if(m) phone=m[1];
-  m=t.maŞoför Telh(/(?:MİKTAR|MIKTAR|M2|M²|METREKARE|ADET)\s*[:\-]?\s*([\d\.,]+)/i); if(m) sqm=m[1].replace(/\./g,'').replace(',','.');
-  if(!sqm){m=t.maŞoför Telh(/([\d\.,]+)\s*m(?:²|2)\b/i);if(m) sqm=m[1].replace(/\./g,'').replace(',','.');}
-  m=t.maŞoför Telh(/(?:ÜRÜN|URUN|ÜRÜN ÇEŞİDİ|URUN CESIDI)\s*[:\-]\s*([^\n]+)/i); if(m) product=normalizeProduct(m[1]);
+  m=t.match(/(?:MÜŞTERİ|MUSTERI|MÜŞTERİ ADI|MUSTERI ADI)\s*[:\-]\s*([^\n]+)/i); if(m) customer=cleanName(m[1]);
+  m=t.match(/(?:TEL|TLF|TELEFON|CEP)\s*[:\-]?\s*(0?5\d{9})/i); if(m) phone=m[1];
+  m=t.match(/(?:MİKTAR|MIKTAR|M2|M²|METREKARE|ADET)\s*[:\-]?\s*([\d\.,]+)/i); if(m) sqm=m[1].replace(/\./g,'').replace(',','.');
+  if(!sqm){m=t.match(/([\d\.,]+)\s*m(?:²|2)\b/i);if(m) sqm=m[1].replace(/\./g,'').replace(',','.');}
+  m=t.match(/(?:ÜRÜN|URUN|ÜRÜN ÇEŞİDİ|URUN CESIDI)\s*[:\-]\s*([^\n]+)/i); if(m) product=normalizeProduct(m[1]);
   if(!product){if(/mantolama/i.test(t)) product='Mantolama'; else if(/yerden\s*ısıtma|yerden\s*isitma/i.test(t)) product='Yerden Isıtma'; else if(/\bHIPS\b/i.test(t)) product='HIPS'; else if(/\bPP\b/i.test(t)) product='PP'; else if(/diğer|diger/i.test(t)) product='Diğer';}
-  m=t.maŞoför Telh(/(?:İL|IL|ŞEHİR|SEHIR|VARIŞ|VARIS)\s*[:\-]\s*([^\n\/]+)/i); if(m) city=cleanPlace(m[1]);
+  m=t.match(/(?:İL|IL|ŞEHİR|SEHIR|VARIŞ|VARIS)\s*[:\-]\s*([^\n\/]+)/i); if(m) city=cleanPlace(m[1]);
   if(!city){const c=knownCities().find(c=>new RegExp('(^|[^A-Za-zÇĞİÖŞÜçğıöşü])'+escapeReg(c)+'([^A-Za-zÇĞİÖŞÜçğıöşü]|$)','i').test(t)); if(c) city=c;}
-  m=t.maŞoför Telh(/(?:İLÇE|ILCE)\s*[:\-]\s*([^\n]+)/i); if(m) district=cleanPlace(m[1]);
-  if(!district){m=t.maŞoför Telh(/\b(Diyarbakır|Tekirdağ|İstanbul|Ankara|İzmir|Bursa|Kocaeli|Konya|Antalya|Adana|Mersin|Kayseri|Gaziantep|Şanlıurfa|Malatya|Elazığ|Van|Erzurum|Samsun|Trabzon|Sakarya|Manisa|Denizli|Eskişehir|Balıkesir|Hatay|Muğla|Aydın|Çanakkale|Kahramanmaraş|Osmaniye|Mardin|Batman|Siirt|Bitlis|Bingöl|Şırnak|Hakkari|Ağrı|Iğdır|Kars|Ardahan|Artvin|Rize|Giresun|Ordu|Tokat|Amasya|Çorum|Sinop|Kastamonu|Karabük|Bartın|Zonguldak|Düzce|Bolu|Bilecik|Kütahya|Uşak|Afyonkarahisar|Isparta|Burdur|Kırklareli|Edirne|Yalova|Çankırı|Kırıkkale|Nevşehir|Niğde|Aksaray|Karaman|Kırşehir|Yozgat|Sivas|Tunceli|Adıyaman|Kilis|Muş)\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i); if(m){city=m[1];district=m[2];}}
-  m=t.maŞoför Telh(/(?:DNS|YOĞUNLUK|YOGUNLUK)\s*[:\-]?\s*(22|24|26|28|30|32|34|36|38|40)\b/i); if(m) density=m[1];
-  if(!density){m=t.maŞoför Telh(/\b(22|24|26|28|30|32|34|36|38|40)\s*(?:DNS|DENSITY)\b/i);if(m)density=m[1];}
+  m=t.match(/(?:İLÇE|ILCE)\s*[:\-]\s*([^\n]+)/i); if(m) district=cleanPlace(m[1]);
+  if(!district){m=t.match(/\b(Diyarbakır|Tekirdağ|İstanbul|Ankara|İzmir|Bursa|Kocaeli|Konya|Antalya|Adana|Mersin|Kayseri|Gaziantep|Şanlıurfa|Malatya|Elazığ|Van|Erzurum|Samsun|Trabzon|Sakarya|Manisa|Denizli|Eskişehir|Balıkesir|Hatay|Muğla|Aydın|Çanakkale|Kahramanmaraş|Osmaniye|Mardin|Batman|Siirt|Bitlis|Bingöl|Şırnak|Hakkari|Ağrı|Iğdır|Kars|Ardahan|Artvin|Rize|Giresun|Ordu|Tokat|Amasya|Çorum|Sinop|Kastamonu|Karabük|Bartın|Zonguldak|Düzce|Bolu|Bilecik|Kütahya|Uşak|Afyonkarahisar|Isparta|Burdur|Kırklareli|Edirne|Yalova|Çankırı|Kırıkkale|Nevşehir|Niğde|Aksaray|Karaman|Kırşehir|Yozgat|Sivas|Tunceli|Adıyaman|Kilis|Muş)\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i); if(m){city=m[1];district=m[2];}}
+  m=t.match(/(?:DNS|YOĞUNLUK|YOGUNLUK)\s*[:\-]?\s*(22|24|26|28|30|32|34|36|38|40)\b/i); if(m) density=m[1];
+  if(!density){m=t.match(/\b(22|24|26|28|30|32|34|36|38|40)\s*(?:DNS|DENSITY)\b/i);if(m)density=m[1];}
   if(/folyosuz/i.test(t)) foil='Folyosuz'; else if(/folyolu/i.test(t)) foil='Folyolu';
-  m=t.maŞoför Telh(/(?:KALINLIK|KALINLIK CM|CM)\s*[:\-]?\s*(1[0-5]|[1-9])\s*(?:CM)?\b/i); if(m) thickness=m[1];
-  m=t.maŞoför Telh(/\b(1[0-5]|[1-9])\s*cm\b/i); if(!thickness&&m) thickness=m[1];
-  m=t.maŞoför Telh(/(?:TARİH|TARIH|SEVKİYAT TARİHİ|SEVKIYAT TARIHI)\s*[:\-]?\s*(\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{2,4})/i);
+  m=t.match(/(?:KALINLIK|KALINLIK CM|CM)\s*[:\-]?\s*(1[0-5]|[1-9])\s*(?:CM)?\b/i); if(m) thickness=m[1];
+  m=t.match(/\b(1[0-5]|[1-9])\s*cm\b/i); if(!thickness&&m) thickness=m[1];
+  m=t.match(/(?:TARİH|TARIH|SEVKİYAT TARİHİ|SEVKIYAT TARIHI)\s*[:\-]?\s*(\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{2,4})/i);
   if(m){const a=m[1].replace(/[\.\/]/g,'-').split('-'); let y=a[2]; if(y.length===2)y='20'+y; date=`${y}-${a[1].padStart(2,'0')}-${a[0].padStart(2,'0')}`;}
   if(!customer){
     const lines=t.split('\n').map(x=>x.trim()).filter(Boolean);
     for(const line of lines){
-      if(/^(ÇEKİCİ|CEKICI|DORSE|Şoför Tel|T\.C\.|TLF|TEL|TELEFON|MİKTAR|MIKTAR|ÜRÜN|URUN|İL|IL|İLÇE|ILCE|KDV|NAKLİYE|SEVKİYAT|SEVKIYAT|BUGÜN|YARIN|NOT)\b/i.test(line)) continue;
+      if(/^(ÇEKİCİ|CEKICI|DORSE|ŞOFÖR TEL|SOFOR TEL|TLF|TEL|TELEFON|MİKTAR|MIKTAR|ÜRÜN|URUN|İL|IL|İLÇE|ILCE|KDV|NAKLİYE|SEVKİYAT|SEVKIYAT|BUGÜN|YARIN|NOT)\b/i.test(line)) continue;
       if(/\d{5,}/.test(line)) continue;
       if(/^[A-ZÇĞİÖŞÜa-zçğıöşü0-9 .&'-]{2,60}$/.test(line) && !/^(Yerden Isıtma|Mantolama|HIPS|PP|Diğer)$/i.test(line)) {customer=line;break;}
     }
   }
-  return {customer,contact,phone,product,city,district,sqm,density,foil,thickness,date};
+  return {customer,phone,product,city,district,sqm,density,foil,thickness,date};
 }
 function normalizeProduct(s){s=s.trim();if(/yerden\s*ısıtma|yerden\s*isitma/i.test(s))return 'Yerden Isıtma';if(/mantolama/i.test(s))return 'Mantolama';if(/\bHIPS\b/i.test(s))return 'HIPS';if(/\bPP\b/i.test(s))return 'PP';if(/diğer|diger/i.test(s))return 'Diğer';return '';}
 function cleanPlace(s){return s.replace(/[.,;]+$/,'').trim();}
 function knownCities(){return ['Adana','Adıyaman','Afyonkarahisar','Ağrı','Aksaray','Amasya','Ankara','Antalya','Ardahan','Artvin','Aydın','Balıkesir','Bartın','Batman','Bayburt','Bilecik','Bingöl','Bitlis','Bolu','Burdur','Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Düzce','Edirne','Elazığ','Erzincan','Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay','Iğdır','Isparta','İstanbul','İzmir','Kahramanmaraş','Karabük','Karaman','Kars','Kastamonu','Kayseri','Kilis','Kırıkkale','Kırklareli','Kırşehir','Kocaeli','Konya','Kütahya','Malatya','Manisa','Mardin','Mersin','Muğla','Muş','Nevşehir','Niğde','Ordu','Osmaniye','Rize','Sakarya','Samsun','Siirt','Sinop','Sivas','Şanlıurfa','Şırnak','Tekirdağ','Tokat','Trabzon','Tunceli','Uşak','Van','Yalova','Yozgat','Zonguldak'];}
 function escapeReg(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
-function parseShipment(mode){const raw=$(mode==='edit'?'e_shipmentPaste':'shipmentPaste').value.trim();if(!raw){alert('Önce sevkiyat mesajını yapıştırın.');return}const p=parseShipmentText(raw);const pre=mode==='edit'?'e_':'';if(p.tractor)$(''+pre+'tractor').value=p.tractor;if(p.trailer)$(''+pre+'trailer').value=p.trailer;if(p.driver)$(''+pre+'driver').value=p.driver;if(p.Şoför Tel)$(''+pre+'Şoför Tel').value=p.Şoför Tel;if(p.city)$(''+pre+'city').value=p.city;if(p.district)$(''+pre+'district').value=p.district;if(p.freight)$(''+pre+'freight').value=p.freight;if(p.vat)$(''+pre+'vat').value=p.vat;alert('Bulunan bilgiler forma aktarıldı. Kaydetmeden önce kontrol edebilirsiniz.')}
+function parseShipment(mode){const raw=$(mode==='edit'?'e_shipmentPaste':'shipmentPaste').value.trim();if(!raw){alert('Önce sevkiyat mesajını yapıştırın.');return}const p=parseShipmentText(raw);const pre=mode==='edit'?'e_':'';if(p.tractor)$(''+pre+'tractor').value=p.tractor;if(p.trailer)$(''+pre+'trailer').value=p.trailer;if(p.driver)$(''+pre+'driver').value=p.driver;if(p.soforTel)$(''+pre+'soforTel').value=p.soforTel;if(p.city)$(''+pre+'city').value=p.city;if(p.district)$(''+pre+'district').value=p.district;if(p.freight)$(''+pre+'freight').value=p.freight;if(p.vat)$(''+pre+'vat').value=p.vat;alert('Bulunan bilgiler forma aktarıldı. Kaydetmeden önce kontrol edebilirsiniz.')}
 function parseShipmentText(raw){
   const t=raw.replace(/\r/g,'\n').replace(/\n+/g,'\n');
-  let tractor='',trailer='',driver='',Şoför Tel='',city='',district='',freight='',vat='';
-  let m=t.maŞoför Telh(/(?:ÇEKİCİ|CEKICI)\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
+  let tractor='',trailer='',driver='',soforTel='',city='',district='',freight='',vat='';
+  let m=t.match(/(?:ÇEKİCİ|CEKICI)\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
   if(m) tractor=normPlate(m[1]);
-  m=t.maŞoför Telh(/DORSE\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
+  m=t.match(/DORSE\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
   if(m) trailer=normPlate(m[1]);
   if(!tractor||!trailer){
-    m=t.maŞoför Telh(/([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})\s*\/\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
+    m=t.match(/([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})\s*\/\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
     if(m){tractor=tractor||normPlate(m[1]);trailer=trailer||normPlate(m[2]);}
   }
-  m=t.maŞoför Telh(/(?:Şoför Tel|T\.C\.?)\s*[:\-]?\s*(\d{11})/i);
-  if(m) Şoför Tel=m[1];
-  m=t.maŞoför Telh(/(?:ŞOFÖR|SOFOR)\s*[:\-]?\s*([^\n]+)/i);
+  m=t.match(/(?:TLF|TEL|TELEFON|ŞOFÖR\s*TEL|SOFOR\s*TEL)\s*[:\-]?\s*(0?5\d{9})/i);
+  if(m) soforTel=m[1];
+  if(!soforTel){m=t.match(/(?:^|[^\d])((?:\+?90\s*)?5\d{2}[\s.\-]?\d{3}[\s.\-]?\d{2}[\s.\-]?\d{2})(?!\d)/);if(m) soforTel=m[1].replace(/[^\d+]/g,'');}
+  m=t.match(/(?:ŞOFÖR|SOFOR)\s*[:\-]?\s*([^\n]+)/i);
   if(m) driver=cleanName(m[1]);
   if(!driver){
     for(const line of t.split('\n').map(x=>x.trim()).filter(Boolean)){
-      if(/^(ÇEKİCİ|CEKICI|DORSE|Şoför Tel|T\.C\.|TLF|TEL|TELEFON|NAKLİYE|KDV|BUGÜN|YARIN|[0-9])/i.test(line)) continue;
+      if(/^(ÇEKİCİ|CEKICI|DORSE|ŞOFÖR TEL|SOFOR TEL|TLF|TEL|TELEFON|NAKLİYE|KDV|BUGÜN|YARIN|[0-9])/i.test(line)) continue;
       if(/^[A-ZÇĞİÖŞÜa-zçğıöşü]+(?:\s+[A-ZÇĞİÖŞÜa-zçğıöşü]+){1,2}$/.test(line)){driver=line;break;}
     }
   }
-  m=t.maŞoför Telh(/(\d[\d\.\,]*)\s*(bin\s*)?TL/i);
+  m=t.match(/(\d[\d\.\,]*)\s*(bin\s*)?TL/i);
   if(m){
     const n=Number(m[1].replace(/\./g,'').replace(',','.'));
     freight=String(m[2]?n*1000:n);
   }
   if(/KDV\s*(?:YOK|0|SIFIR)/i.test(t)) vat='Yok';
   else if(/KDV\s*(?:VAR|DAHİL|DAHIL)/i.test(t)) vat='Var';
-  const dm=t.maŞoför Telh(/(?:VARIŞ|VARIS|TESLİMAT|TESLIMAT)\s*[:\-]?\s*([^\n]+)/i);
+  const dm=t.match(/(?:VARIŞ|VARIS|TESLİMAT|TESLIMAT)\s*[:\-]?\s*([^\n]+)/i);
   if(dm){
     const parts=dm[1].split('/').map(x=>x.trim());
     city=parts[0]||''; district=parts[1]||'';
@@ -251,19 +234,19 @@ function parseShipmentText(raw){
       const re=new RegExp('\\\\b'+c.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')+'\\\\b','i');
       if(re.test(t)){city=c;break;}
     }
-    const dm2=t.maŞoför Telh(/Tekirdağ\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i);
+    const dm2=t.match(/Tekirdağ\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i);
     if(dm2) district=dm2[1];
   }
-  return {tractor,trailer,driver,Şoför Tel,city,district,freight,vat};
+  return {tractor,trailer,driver,soforTel,city,district,freight,vat};
 }
-function normPlate(s){return s.replace(/\s+/g,' ').trim().toUpperCase()}function cleanName(s){return s.replace(/\s+/g,' ').replace(/\s+(Şoför Tel|TLF|TEL).*$/i,'').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}function escAttr(s){return esc(s).replace(/`/g,'&#096;')}
-producŞoför Telhanged();$('date').value=new Date().toISOString().slice(0,10);
+function normPlate(s){return s.replace(/\s+/g,' ').trim().toUpperCase()}function cleanName(s){return s.replace(/\s+/g,' ').replace(/\s+(Şoför Tel|TLF|TEL|TELEFON).*$/i,'').trim()}function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}function escAttr(s){return esc(s).replace(/`/g,'&#096;')}
+productChanged();$('date').value=new Date().toISOString().slice(0,10);
 </script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js').caŞoför Telh(()=>{});}
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}
 // Robust event bindings (works even if inline handlers are restricted)
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.tab').forEach(btn => {
-    btn.addEventListener('click', () => show(btn.dataset.section || (btn.texŞoför Telontent.includes('Siparişler') ? 'list' : btn.texŞoför Telontent.includes('Tamamlanan') ? 'completed' : 'new'), btn));
+    btn.addEventListener('click', () => show(btn.dataset.section || (btn.textContent.includes('Siparişler') ? 'list' : btn.textContent.includes('Tamamlanan') ? 'completed' : 'new'), btn));
   });
 });
 </script>
