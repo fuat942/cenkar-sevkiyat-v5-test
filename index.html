@@ -9,8 +9,8 @@
 header{background:#111827;color:white;padding:18px 16px 14px;position:sticky;top:0;z-index:5}
 h1{font-size:22px;margin:0 0 12px}.tabs{display:flex;gap:8px;overflow-x:auto}.tab{border:0;border-radius:10px;padding:10px 13px;background:#263244;color:#fff;font-weight:700;white-space:nowrap}.tab.active{background:#fff;color:#111827}
 main{padding:14px;max-width:700px;margin:auto}.card{background:#fff;border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:0 2px 10px #0000000b}
-label{display:block;font-size:13px;font-weight:700;margin:11px 0 5px}input,select,textarea{width:100%;font-size:17px;padding:12px;border:1px solid #d8dde5;border-radius:11px;background:#fff}textarea{min-height:70px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}
+label{display:block;font-size:13px;font-weight:700;margin:11px 0 5px}input,select,textarea{width:100%;min-width:0;max-width:100%;font-size:17px;padding:12px;border:1px solid #d8dde5;border-radius:11px;background:#fff}input[type=date]{font-size:15px;min-width:0}textarea{min-height:70px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.grid>div{min-width:0}.full{grid-column:1/-1}
 button.primary{width:100%;border:0;border-radius:12px;padding:14px;margin-top:15px;background:#111827;color:white;font-size:17px;font-weight:800}
 button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;padding:8px 10px}
 .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.stat{background:#fff;border-radius:13px;padding:11px}.stat b{display:block;font-size:20px}.stat span{font-size:11px;color:#687385}
@@ -18,7 +18,7 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 .order{border:1px solid #e4e8ee;border-radius:14px;padding:13px;margin-top:10px}.top{display:flex;justify-content:space-between;gap:8px}.badge{font-size:11px;font-weight:800;padding:5px 8px;border-radius:8px;background:#eef2ff;color:#3730a3}.badge.done{background:#dcfce7;color:#166534}.meta{font-size:13px;color:#596579;line-height:1.65;margin-top:7px}.actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.actions button{flex:1;min-width:135px;padding:9px;border-radius:9px;border:1px solid #d7dce4;background:white;font-weight:700}
 .hidden{display:none}.small{font-size:12px;color:#687385}.file-status{font-size:12px;margin-top:7px;color:#166534;font-weight:700}.section-title{font-size:18px;font-weight:800;margin:4px 0 10px}
 .modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;justify-content:center;z-index:50}.modal.show{display:flex}.modal-box{background:#fff;width:100%;max-width:700px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px}.modal-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.modal-head h2{margin:0;font-size:20px}.close{border:0;background:#eef2f6;border-radius:10px;padding:8px 12px;font-size:20px}.modal-actions{display:flex;gap:8px;margin-top:14px}.modal-actions button{flex:1;padding:13px;border:0;border-radius:11px;font-weight:800}.save-edit{background:#111827;color:#fff}.cancel-edit{background:#e5e7eb;color:#111827}
-@media(max-width:420px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.summary{grid-template-columns:1fr 1fr}.summary .stat:last-child{grid-column:1/-1}}
+@media(max-width:440px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.summary{grid-template-columns:1fr 1fr}.summary .stat:last-child{grid-column:1/-1}}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#111827">
@@ -57,6 +57,7 @@ button.danger{border:0;background:#fee2e2;color:#991b1b;border-radius:9px;paddin
 <div><label>TC Kimlik No</label><input id="tc" inputmode="numeric" maxlength="11" placeholder="11 hane"></div>
 <div><label>Nakliye ücreti (TL)</label><input id="freight" type="number" inputmode="decimal" placeholder="0"></div>
 <div><label>KDV</label><select id="vat"><option>Yok</option><option>Var</option></select></div>
+<div class="full"><label>Sipariş Bilgilerini Yapıştır</label><textarea id="orderPaste" placeholder="WhatsApp'tan gelen sipariş mesajını buraya yapıştırın..."></textarea><button type="button" class="primary" style="margin-top:8px" onclick="parseOrder()">📋 Yapıştır → Siparişi Doldur</button><p class="small">Müşteri, irtibat, telefon, ürün, il/ilçe, miktar, DNS, folyo ve kalınlık bilgilerini bulmaya çalışır.</p></div>
 <div class="full"><label>Sevk Bilgilerini Yapıştır</label><textarea id="shipmentPaste" placeholder="WhatsApp'tan gelen sevk mesajını buraya yapıştırın..."></textarea><button type="button" class="primary" style="margin-top:8px" onclick="parseShipment('new')">📋 Yapıştır → Bilgileri Doldur</button><p class="small">Sistem yalnızca çekici, dorse, şoför, TC, varış il/ilçe, nakliye ücreti ve KDV bilgilerini almaya çalışır.</p></div>
 <div class="full"><label>Not</label><textarea id="note" placeholder="İsteğe bağlı"></textarea></div>
 </div>
@@ -138,6 +139,59 @@ function del(id){if(confirm('Bu siparişi silmek istiyor musunuz?')){data=data.f
 function chooseFile(id){selectedOrderForFile=id;$('fileInput').value='';$('fileInput').click()}
 async function handleFile(e){const file=e.target.files[0];if(!file||!selectedOrderForFile)return;try{await saveFile(selectedOrderForFile,file);alert('Teslim formu kaydedildi.');renderActive();renderCompleted()}catch(err){alert('Dosya kaydedilemedi. Lütfen tekrar deneyin.')}}
 async function viewFile(id){const f=await getFile(id);if(!f){alert('Bu sipariş için teslim formu yüklenmemiş.');return}const url=URL.createObjectURL(f.blob);window.open(url,'_blank');setTimeout(()=>URL.revokeObjectURL(url),60000)}
+function parseOrder(){
+  const raw=$('orderPaste').value.trim();
+  if(!raw){alert('Önce sipariş mesajını yapıştırın.');return}
+  const p=parseOrderText(raw);
+  if(p.customer)$('customer').value=p.customer;
+  if(p.contact)$('contact').value=p.contact;
+  if(p.phone)$('phone').value=p.phone;
+  if(p.product){$('product').value=p.product;productChanged();}
+  if(p.city)$('city').value=p.city;
+  if(p.district)$('district').value=p.district;
+  if(p.sqm)$('sqm').value=p.sqm;
+  if(p.density)$('density').value=p.density;
+  if(p.foil)$('foil').value=p.foil;
+  if(p.thickness){productChanged();$('thickness').value=p.thickness;}
+  if(p.date)$('date').value=p.date;
+  alert('Bulunan sipariş bilgileri forma aktarıldı. Kaydetmeden önce kontrol edebilirsiniz.');
+}
+function parseOrderText(raw){
+  const t=raw.replace(/\r/g,'\n').replace(/[ \t]+/g,' ').replace(/\n+/g,'\n').trim();
+  let customer='',contact='',phone='',product='',city='',district='',sqm='',density='',foil='',thickness='',date='';
+  let m;
+  m=t.match(/(?:MÜŞTERİ|MUSTERI|MÜŞTERİ ADI|MUSTERI ADI)\s*[:\-]\s*([^\n]+)/i); if(m) customer=cleanName(m[1]);
+  m=t.match(/(?:İRTİBAT|IRTIBAT|YETKİLİ|YETKILI|SİPARİŞ VEREN|SIPARIS VEREN)\s*[:\-]\s*([^\n]+)/i); if(m) contact=cleanName(m[1]);
+  m=t.match(/(?:TEL|TLF|TELEFON|CEP)\s*[:\-]?\s*(0?5\d{9})/i); if(m) phone=m[1];
+  m=t.match(/(?:MİKTAR|MIKTAR|M2|M²|METREKARE|ADET)\s*[:\-]?\s*([\d\.,]+)/i); if(m) sqm=m[1].replace(/\./g,'').replace(',','.');
+  if(!sqm){m=t.match(/([\d\.,]+)\s*m(?:²|2)\b/i);if(m) sqm=m[1].replace(/\./g,'').replace(',','.');}
+  m=t.match(/(?:ÜRÜN|URUN|ÜRÜN ÇEŞİDİ|URUN CESIDI)\s*[:\-]\s*([^\n]+)/i); if(m) product=normalizeProduct(m[1]);
+  if(!product){if(/mantolama/i.test(t)) product='Mantolama'; else if(/yerden\s*ısıtma|yerden\s*isitma/i.test(t)) product='Yerden Isıtma'; else if(/\bHIPS\b/i.test(t)) product='HIPS'; else if(/\bPP\b/i.test(t)) product='PP'; else if(/diğer|diger/i.test(t)) product='Diğer';}
+  m=t.match(/(?:İL|IL|ŞEHİR|SEHIR|VARIŞ|VARIS)\s*[:\-]\s*([^\n\/]+)/i); if(m) city=cleanPlace(m[1]);
+  if(!city){const c=knownCities().find(c=>new RegExp('(^|[^A-Za-zÇĞİÖŞÜçğıöşü])'+escapeReg(c)+'([^A-Za-zÇĞİÖŞÜçğıöşü]|$)','i').test(t)); if(c) city=c;}
+  m=t.match(/(?:İLÇE|ILCE)\s*[:\-]\s*([^\n]+)/i); if(m) district=cleanPlace(m[1]);
+  if(!district){m=t.match(/\b(Diyarbakır|Tekirdağ|İstanbul|Ankara|İzmir|Bursa|Kocaeli|Konya|Antalya|Adana|Mersin|Kayseri|Gaziantep|Şanlıurfa|Malatya|Elazığ|Van|Erzurum|Samsun|Trabzon|Sakarya|Manisa|Denizli|Eskişehir|Balıkesir|Hatay|Muğla|Aydın|Çanakkale|Kahramanmaraş|Osmaniye|Mardin|Batman|Siirt|Bitlis|Bingöl|Şırnak|Hakkari|Ağrı|Iğdır|Kars|Ardahan|Artvin|Rize|Giresun|Ordu|Tokat|Amasya|Çorum|Sinop|Kastamonu|Karabük|Bartın|Zonguldak|Düzce|Bolu|Bilecik|Kütahya|Uşak|Afyonkarahisar|Isparta|Burdur|Kırklareli|Edirne|Yalova|Çankırı|Kırıkkale|Nevşehir|Niğde|Aksaray|Karaman|Kırşehir|Yozgat|Sivas|Tunceli|Adıyaman|Kilis|Muş)\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i); if(m){city=m[1];district=m[2];}}
+  m=t.match(/(?:DNS|YOĞUNLUK|YOGUNLUK)\s*[:\-]?\s*(22|24|26|28|30|32|34|36|38|40)\b/i); if(m) density=m[1];
+  if(!density){m=t.match(/\b(22|24|26|28|30|32|34|36|38|40)\s*(?:DNS|DENSITY)\b/i);if(m)density=m[1];}
+  if(/folyosuz/i.test(t)) foil='Folyosuz'; else if(/folyolu/i.test(t)) foil='Folyolu';
+  m=t.match(/(?:KALINLIK|KALINLIK CM|CM)\s*[:\-]?\s*(1[0-5]|[1-9])\s*(?:CM)?\b/i); if(m) thickness=m[1];
+  m=t.match(/\b(1[0-5]|[1-9])\s*cm\b/i); if(!thickness&&m) thickness=m[1];
+  m=t.match(/(?:TARİH|TARIH|SEVKİYAT TARİHİ|SEVKIYAT TARIHI)\s*[:\-]?\s*(\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{2,4})/i);
+  if(m){const a=m[1].replace(/[\.\/]/g,'-').split('-'); let y=a[2]; if(y.length===2)y='20'+y; date=`${y}-${a[1].padStart(2,'0')}-${a[0].padStart(2,'0')}`;}
+  if(!customer){
+    const lines=t.split('\n').map(x=>x.trim()).filter(Boolean);
+    for(const line of lines){
+      if(/^(ÇEKİCİ|CEKICI|DORSE|TC|T\.C\.|TLF|TEL|TELEFON|MİKTAR|MIKTAR|ÜRÜN|URUN|İL|IL|İLÇE|ILCE|KDV|NAKLİYE|SEVKİYAT|SEVKIYAT|BUGÜN|YARIN|NOT)\b/i.test(line)) continue;
+      if(/\d{5,}/.test(line)) continue;
+      if(/^[A-ZÇĞİÖŞÜa-zçğıöşü0-9 .&'-]{2,60}$/.test(line) && !/^(Yerden Isıtma|Mantolama|HIPS|PP|Diğer)$/i.test(line)) {customer=line;break;}
+    }
+  }
+  return {customer,contact,phone,product,city,district,sqm,density,foil,thickness,date};
+}
+function normalizeProduct(s){s=s.trim();if(/yerden\s*ısıtma|yerden\s*isitma/i.test(s))return 'Yerden Isıtma';if(/mantolama/i.test(s))return 'Mantolama';if(/\bHIPS\b/i.test(s))return 'HIPS';if(/\bPP\b/i.test(s))return 'PP';if(/diğer|diger/i.test(s))return 'Diğer';return '';}
+function cleanPlace(s){return s.replace(/[.,;]+$/,'').trim();}
+function knownCities(){return ['Adana','Adıyaman','Afyonkarahisar','Ağrı','Aksaray','Amasya','Ankara','Antalya','Ardahan','Artvin','Aydın','Balıkesir','Bartın','Batman','Bayburt','Bilecik','Bingöl','Bitlis','Bolu','Burdur','Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Düzce','Edirne','Elazığ','Erzincan','Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay','Iğdır','Isparta','İstanbul','İzmir','Kahramanmaraş','Karabük','Karaman','Kars','Kastamonu','Kayseri','Kilis','Kırıkkale','Kırklareli','Kırşehir','Kocaeli','Konya','Kütahya','Malatya','Manisa','Mardin','Mersin','Muğla','Muş','Nevşehir','Niğde','Ordu','Osmaniye','Rize','Sakarya','Samsun','Siirt','Sinop','Sivas','Şanlıurfa','Şırnak','Tekirdağ','Tokat','Trabzon','Tunceli','Uşak','Van','Yalova','Yozgat','Zonguldak'];}
+function escapeReg(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
 function parseShipment(mode){const raw=$(mode==='edit'?'e_shipmentPaste':'shipmentPaste').value.trim();if(!raw){alert('Önce sevkiyat mesajını yapıştırın.');return}const p=parseShipmentText(raw);const pre=mode==='edit'?'e_':'';if(p.tractor)$(''+pre+'tractor').value=p.tractor;if(p.trailer)$(''+pre+'trailer').value=p.trailer;if(p.driver)$(''+pre+'driver').value=p.driver;if(p.tc)$(''+pre+'tc').value=p.tc;if(p.city)$(''+pre+'city').value=p.city;if(p.district)$(''+pre+'district').value=p.district;if(p.freight)$(''+pre+'freight').value=p.freight;if(p.vat)$(''+pre+'vat').value=p.vat;alert('Bulunan bilgiler forma aktarıldı. Kaydetmeden önce kontrol edebilirsiniz.')}
 function parseShipmentText(raw){
   const t=raw.replace(/\r/g,'\n').replace(/\n+/g,'\n');
