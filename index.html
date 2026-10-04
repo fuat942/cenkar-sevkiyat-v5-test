@@ -200,7 +200,7 @@ input[type=text],textarea{text-transform:uppercase}
 <script>
 const $=id=>document.getElementById(id);
 let data=JSON.parse(localStorage.getItem('cenkar_orders')||'[]');
-let editingId=null,selectedOrderForFile=null,cloudUser=null,cloudBusy=false;
+let editingId=null,selectedOrderForFile=null,cloudUser=null,cloudBusy=false,cloudSyncTimer=null,cloudLastSync=0;
 
 const SUPABASE_URL='https://tcyivfotanbyeaofsxkr.supabase.co';
 const SUPABASE_KEY='sb_publishable_qKkQhF16iwWFnBlCYYAE9w_HramTpDL';
@@ -368,14 +368,30 @@ function exportCompleted(){
 async function cloudUpsert(x){if(!cloudUser||!sb)return;const {error}=await sb.from('cenkar_orders').upsert({id:x.id,user_id:cloudUser.id,data:x,updated_at:new Date(x.updatedAt||Date.now()).toISOString()});if(error)console.warn(error)}
 async function cloudDelete(id){if(cloudUser&&sb)await sb.from('cenkar_orders').delete().eq('id',id)}
 async function cloudRefresh(){
- if(!cloudUser||!sb||cloudBusy)return;cloudBusy=true;
+ if(!cloudUser||!sb||cloudBusy)return false;cloudBusy=true;
  try{
-  const {data:rows,error}=await sb.from('cenkar_orders').select('id,data,updated_at').order('updated_at',{ascending:false});if(error)throw error;
+  const {data:rows,error}=await sb.from('cenkar_orders').select('id,data,updated_at').eq('user_id',cloudUser.id).order('updated_at',{ascending:false});if(error)throw error;
   const map=new Map(data.map(x=>[String(x.id),x]));
-  for(const r of rows||[]){const local=map.get(String(r.id));if(!local||Number(r.data.updatedAt||0)>Number(local.updatedAt||0))map.set(String(r.id),r.data)}
-  for(const x of map.values())if(!(rows||[]).some(r=>String(r.id)===String(x.id)))await cloudUpsert(x);
-  data=[...map.values()].sort((a,b)=>Number(b.id)-Number(a.id));saveLocal();populateCities();renderActive();renderCompleted();
- }catch(e){console.warn(e)}finally{cloudBusy=false}
+  for(const r of rows||[]){
+   const remote=r.data||{},local=map.get(String(r.id));
+   if(!local||Number(remote.updatedAt||0)>Number(local.updatedAt||0))map.set(String(r.id),remote);
+   else if(local&&Number(local.updatedAt||0)>Number(remote.updatedAt||0))await cloudUpsert(local);
+  }
+  const remoteIds=new Set((rows||[]).map(r=>String(r.id)));
+  for(const x of map.values())if(!remoteIds.has(String(x.id)))await cloudUpsert(x);
+  data=[...map.values()].sort((a,b)=>Number(b.updatedAt||b.id)-Number(a.updatedAt||a.id));
+  saveLocal();populateCities();renderActive();renderCompleted();cloudLastSync=Date.now();return true;
+ }catch(e){console.warn('Cloud sync error',e);return false}finally{cloudBusy=false}
+}
+function startCloudAutoSync(){
+ if(cloudSyncTimer)clearInterval(cloudSyncTimer);
+ cloudSyncTimer=null;
+ if(!cloudUser||!sb)return;
+ cloudSyncTimer=setInterval(()=>{if(document.visibilityState==='visible')cloudRefresh()},8000);
+}
+function stopCloudAutoSync(){
+ if(cloudSyncTimer)clearInterval(cloudSyncTimer);
+ cloudSyncTimer=null;
 }
 function updateCloudUI(){
  const logged=!!cloudUser;$('cloudLoggedOut').classList.toggle('hidden',logged);$('cloudLoggedIn').classList.toggle('hidden',!logged);
@@ -386,21 +402,26 @@ async function cloudLogin(){
  initSupabaseClient(); if(!sb)return alert('Bulut bağlantısı şu anda kullanılamıyor. Siparişler telefonda çalışmaya devam eder.');
  const email=$('cloudEmail').value.trim(),password=$('cloudPassword').value;if(!email||!password)return alert('E-posta ve şifre girin.');
  const {data:r,error}=await sb.auth.signInWithPassword({email,password});if(error)return alert('Giriş yapılamadı: '+error.message);
- cloudUser=r.user;updateCloudUI();await cloudRefresh();alert('Buluta bağlandı.');
+ cloudUser=r.user;updateCloudUI();await cloudRefresh();startCloudAutoSync();alert('Buluta bağlandı.');
 }
 async function cloudSignup(){
  initSupabaseClient(); if(!sb)return alert('Bulut bağlantısı şu anda kullanılamıyor. Siparişler telefonda çalışmaya devam eder.');
  const email=$('cloudEmail').value.trim(),password=$('cloudPassword').value;if(!email||!password)return alert('E-posta ve şifre girin.');
  const {data:r,error}=await sb.auth.signUp({email,password});if(error)return alert('Hesap oluşturulamadı: '+error.message);
- if(r.user){cloudUser=r.user;updateCloudUI();await cloudRefresh();alert('Hesap oluşturuldu.')}else alert('Hesap oluşturuldu. E-posta doğrulaması gerekiyorsa e-postanızı kontrol edin.');
+ if(r.user){cloudUser=r.user;updateCloudUI();await cloudRefresh();startCloudAutoSync();alert('Hesap oluşturuldu.')}else alert('Hesap oluşturuldu. E-posta doğrulaması gerekiyorsa e-postanızı kontrol edin.');
 }
 async function initCloud(){
   initSupabaseClient();
   if(!sb){ updateCloudUI(); return; }
   const {data:r}=await sb.auth.getSession();
-  if(r.session){cloudUser=r.session.user;updateCloudUI();await cloudRefresh()}else updateCloudUI();
-  sb.auth.onAuthStateChange((_e,s)=>{cloudUser=s?.user||null;updateCloudUI()});
+  if(r.session){cloudUser=r.session.user;updateCloudUI();await cloudRefresh();startCloudAutoSync()}else updateCloudUI();
+  sb.auth.onAuthStateChange(async(_e,s)=>{
+    cloudUser=s?.user||null;updateCloudUI();
+    if(cloudUser){await cloudRefresh();startCloudAutoSync()}else stopCloudAutoSync();
+  });
 }
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudUser&&sb)cloudRefresh()});
+window.addEventListener('focus',()=>{if(cloudUser&&sb)cloudRefresh()});
 
 $('product').onchange=productChanged;$('saveBtn').onclick=save;$('parseOrderBtn').onclick=()=>applyOrder();$('parseShipmentBtn').onclick=()=>applyShipment('new');
 $('search').oninput=renderActive;$('fcity').onchange=renderActive;$('fproduct').onchange=renderActive;$('doneSearch').oninput=renderCompleted;$('doneCity').onchange=renderCompleted;$('doneProduct').onchange=renderCompleted;
@@ -411,7 +432,7 @@ $('cloudClose').onclick=()=>$('cloudModal').classList.remove('show');
 $('cloudLogin').onclick=cloudLogin;
 $('cloudSignup').onclick=cloudSignup;
 $('cloudSync').onclick=async()=>{await cloudRefresh();alert('Senkronizasyon tamamlandı.')};
-$('cloudLogout').onclick=async()=>{if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();$('cloudModal').classList.remove('show')};
+$('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();$('cloudModal').classList.remove('show')};
 
 setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));productChanged();
 setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));editProductChanged();
