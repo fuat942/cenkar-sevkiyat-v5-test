@@ -54,6 +54,7 @@ button{font-family:inherit}
 input[type=text],textarea{text-transform:uppercase}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script></script>
 </head>
 <body>
 <header>
@@ -350,11 +351,9 @@ function applyShipment(mode){
 
 function shareOrder(id){
  const x=data.find(o=>String(o.id)===String(id));if(!x)return;
- const lines=['CENKAR SEVKİYAT','',`MÜŞTERİ: ${x.customer||'-'}`,`ÜRÜN: ${x.product||'-'}`];
- if(x.product==='Yerden Isıtma')lines.push(`FOLYO: ${x.foil||'-'}`);
- if(x.product==='Mantolama')lines.push(`KALINLIK: ${x.thickness||'-'} CM`);
- lines.push(`YOĞUNLUK: ${x.density||'-'} DNS`,`MİKTAR: ${x.sqm||0} M²`,`İL / İLÇE: ${x.city||'-'} / ${x.district||'-'}`,`İRTİBAT: ${x.phone||'-'}`,'',`SEVKİYAT TARİHİ: ${x.date||'-'}`,`ÇEKİCİ: ${x.tractor||'-'}`,`DORSE: ${x.trailer||'-'}`,`ŞOFÖR: ${x.driver||'-'}`,`ŞOFÖR TEL: ${x.soforTel||'-'}`,`NAKLİYE: ${x.freight?Number(x.freight).toLocaleString('tr-TR')+' TL':'-'}`,`ÖDEME: ${x.freightPayment||'-'}`,`KDV: ${x.vat||'-'}`);
- if(x.note)lines.push(`NOT: ${x.note}`);
+ const lines=['CENKAR SEVKİYAT','',`MÜŞTERİ: ${x.customer||'-'}`,`ÜRÜN ÇEŞİDİ: ${x.product||'-'}`,`YOĞUNLUK: ${x.density||'-'} DNS`];
+ if(x.product==='Yerden Isıtma')lines.push(`FOLYOLU / FOLYOSUZ: ${x.foil||'-'}`);
+ lines.push(`İL / İLÇE: ${x.city||'-'} / ${x.district||'-'}`,`İRTİBAT: ${x.phone||'-'}`,'',`PLAKA - ÇEKİCİ: ${x.tractor||'-'}`,`PLAKA - DORSE: ${x.trailer||'-'}`,`ŞOFÖR: ${x.driver||'-'}`,`ŞOFÖR TEL: ${x.soforTel||'-'}`);
  const text=lines.join('\n');
  if(navigator.share)navigator.share({title:'CENKAR SEVKİYAT',text}).catch(()=>{});
  else navigator.clipboard?.writeText(text).then(()=>alert('Bilgiler kopyalandı.'));
@@ -369,12 +368,13 @@ function exportCompleted(){
  const from=$('exportFrom').value,to=$('exportTo').value;
  const arr=data.filter(x=>x.completed&&(!from||x.date>=from)&&(!to||x.date<=to));
  if(!arr.length)return alert('Dışa aktarılacak tamamlanan sipariş yok.');
+ if(typeof XLSX==='undefined')return alert('Excel modülü yüklenemedi. İnternet bağlantısını kontrol edip tekrar deneyin.');
  const h=['Tarih','Müşteri','Telefon','Ürün','DNS','Folyo','Kalınlık','İl','İlçe','Miktar m²','Çekici','Dorse','Şoför','Şoför Tel','Nakliye TL','Ödeme','KDV','Not'];
- const escX=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
  const rows=[h,...arr.map(x=>[x.date,x.customer,x.phone,x.product,x.density,x.foil,x.thickness,x.city,x.district,x.sqm,x.tractor,x.trailer,x.driver,x.soforTel,x.freight,x.freightPayment,x.vat,x.note])];
- const table='<table border="1"><thead><tr>'+h.map(v=>'<th>'+escX(v)+'</th>').join('')+'</tr></thead><tbody>'+arr.map(x=>[x.date,x.customer,x.phone,x.product,x.density,x.foil,x.thickness,x.city,x.district,x.sqm,x.tractor,x.trailer,x.driver,x.soforTel,x.freight,x.freightPayment,x.vat,x.note].map(v=>'<td>'+escX(v)+'</td>').join('')).map(r=>'<tr>'+r+'</tr>').join('')+'</tbody></table>';
- const html='\ufeff<html><head><meta charset="UTF-8"></head><body>'+table+'</body></html>';
- const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'application/vnd.ms-excel;charset=utf-8'}));a.download='Cenkar_Tamamlanan_Siparisler.xls';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ const ws=XLSX.utils.aoa_to_sheet(rows);
+ ws['!cols']=h.map((_,i)=>({wch:[12,24,15,18,8,10,10,16,18,12,14,14,22,16,14,18,10,35][i]||15}));
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Tamamlanan Siparişler');
+ XLSX.writeFile(wb,'Cenkar_Tamamlanan_Siparisler.xlsx');
 }
 
 async function cloudUpsert(x){if(!cloudUser||!sb)return;const {error}=await sb.from('cenkar_orders').upsert({id:x.id,user_id:cloudUser.id,data:x,updated_at:new Date(x.updatedAt||Date.now()).toISOString()});if(error)console.warn(error)}
