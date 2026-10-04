@@ -136,6 +136,58 @@ function fillThicknessSelect(){if(!$('e_thickness').options.length){for(let i=1;
 function editProductChanged(){let p=$('e_product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';$('e_foilBox').classList.toggle('hidden',!isY);$('e_densityBox').classList.toggle('hidden',!(isY||isM));$('e_thicknessBox').classList.toggle('hidden',!isM);let d=$('e_density'),old=d.value;d.innerHTML='';if(isM){for(let i=8;i<=24;i+=2){let o=document.createElement('option');o.value=o.textContent=i;d.appendChild(o)}}else{for(let i=22;i<=40;i+=2){let o=document.createElement('option');o.value=o.textContent=i;d.appendChild(o)}}d.value=[...d.options].some(o=>o.value===old)?old:(isM?'8':'22');if(isM)fillThicknessSelect()}
 function populateCities(){let cities=[...new Set(data.map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));let opts='<option value="">Tüm iller</option>'+cities.map(x=>`<option value="${escAttr(x)}">${esc(x)}</option>`).join('');$('fcity').innerHTML=opts;$('doneCity').innerHTML=opts}
 function matches(x,q,city,prod){return(!q||[x.customer,x.phone,x.tractor,x.trailer,x.driver,x.city,x.district].join(' ').toLowerCase().includes(q))&&(!city||x.city===city)&&(!prod||x.product===prod)}
+
+async function shareOrder(id){
+  const x=data.find(a=>String(a.id)===String(id));
+  if(!x){alert('Sipariş bulunamadı.');return;}
+
+  const lines=[
+    'CENKAR SEVKİYAT',
+    '',
+    'MÜŞTERİ: '+(x.customer||'-'),
+    'ÜRÜN: '+(x.product||'-'),
+    x.product==='Yerden Isıtma' ? 'FOLYO: '+(x.foil||'-') : null,
+    'YOĞUNLUK: '+(x.density||'-')+' DNS',
+    x.product==='Mantolama' ? 'KALINLIK: '+(x.thickness||'-')+' CM' : null,
+    'MİKTAR: '+(x.sqm||0)+' M²',
+    'İL / İLÇE: '+(x.city||'-')+' / '+(x.district||'-'),
+    'İRTİBAT: '+(x.phone||'-'),
+    '',
+    'SEVKİYAT TARİHİ: '+(x.date||'-'),
+    'ÇEKİCİ: '+(x.tractor||'-'),
+    'DORSE: '+(x.trailer||'-'),
+    'ŞOFÖR: '+(x.driver||'-'),
+    'ŞOFÖR TEL: '+(x.soforTel||'-'),
+    'NAKLİYE: '+(x.freight ? Number(x.freight).toLocaleString('tr-TR')+' TL' : '-')+' / '+(x.freightPayment||'Bize ait'),
+    'KDV: '+(x.vat||'-'),
+    x.note ? 'NOT: '+x.note : null
+  ].filter(Boolean).join('\n');
+
+  if(navigator.share){
+    try{
+      await navigator.share({title:'CENKAR SEVKİYAT - '+(x.customer||''),text:lines});
+      return;
+    }catch(err){
+      if(err && err.name==='AbortError') return;
+    }
+  }
+
+  try{
+    await navigator.clipboard.writeText(lines);
+    alert('Paylaşım desteklenmedi. Sipariş bilgileri panoya kopyalandı. WhatsApp\\'a yapıştırabilirsiniz.');
+  }catch(err){
+    const ta=document.createElement('textarea');
+    ta.value=lines;
+    ta.style.position='fixed';
+    ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    alert('Sipariş bilgileri kopyalandı. WhatsApp\\'a yapıştırabilirsiniz.');
+  }
+}
+
 function orderHTML(x){return `<div class="order"><div class="top"><b>${esc(x.customer)}</b>${x.completed?'<span class="badge done">Tamamlandı</span>':''}</div><div class="meta"><b>${esc(x.product)}</b>${x.product==='Yerden Isıtma'?' · '+esc(x.foil)+' · '+esc(x.density)+' DNS':''}${x.product==='Mantolama'?' · '+esc(x.thickness)+' cm · '+esc(x.density)+' DNS':''} · ${esc(x.city)||'-'} / ${esc(x.district)||'-'} · <b>${Number(x.sqm||0).toLocaleString('tr-TR')} m²</b><br>📅 ${x.date||'-'} · 🚛 ${esc(x.tractor)||'-'} / ${esc(x.trailer)||'-'} · 👤 ${esc(x.driver)||'-'}<br>📞 ${esc(x.phone)||'-'}<br>💰 Nakliye: ${x.freight?Number(x.freight).toLocaleString('tr-TR')+' TL':'-'} · ${esc(x.freightPayment||'Bize ait')} · KDV: ${esc(x.vat)||'-'}</div><div id="file-${x.id}" class="file-status"></div><div class="actions"><button onclick="shareOrder(${x.id})">📤 Paylaş</button><button onclick="openEdit(${x.id})">✏️ Düzenle</button>${!x.completed?`<button onclick="completeOrder(${x.id})">✅ Tamamlandı</button>`:''}<button onclick="chooseFile(${x.id})">📎 Teslim Formu</button>${x.completed?'<button onclick="viewFile('+x.id+')">📄 Formu Görüntüle</button>':''}<button class="danger" onclick="del(${x.id})">Sil</button></div></div>`}
 function renderActive(){let q=$('search').value.toLowerCase(),city=$('fcity').value,prod=$('fproduct').value,arr=data.filter(x=>!x.completed&&matches(x,q,city,prod));let active=data.filter(x=>!x.completed);$('count').textContent=active.length;$('total').textContent=active.reduce((a,x)=>a+x.sqm,0).toLocaleString('tr-TR');$('pending').textContent=active.filter(x=>!x.tractor||!x.trailer||!x.driver).length;$('orders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Aktif sipariş bulunamadı.</div>';refreshFileStatuses(arr)}
 async function renderCompleted(){let q=$('doneSearch').value.toLowerCase(),city=$('doneCity').value,prod=$('doneProduct').value,all=data.filter(x=>x.completed),arr=all.filter(x=>matches(x,q,city,prod));$('doneCount').textContent=all.length;$('doneTotal').textContent=all.reduce((a,x)=>a+x.sqm,0).toLocaleString('tr-TR');let formCount=0;for(const x of all){if(await getFile(x.id))formCount++}$('doneForms').textContent=formCount;$('completedOrders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Tamamlanan sipariş bulunamadı.</div>';refreshFileStatuses(arr)}
