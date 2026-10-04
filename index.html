@@ -290,5 +290,51 @@ document.addEventListener('input', function(e){
 })();
 </script>
 
-<script>window.shareOrder=function(id){try{var x=window.data&&window.data.find(function(a){return String(a.id)===String(id)});if(!x){var a=JSON.parse(localStorage.getItem('cenkarOrders')||'[]');x=a.find(function(o){return String(o.id)===String(id)});}if(!x){alert('SİPARİŞ BULUNAMADI.');return;}var t=['CENKAR SEVKİYAT','', 'MÜŞTERİ: '+(x.customer||'-'),'ÜRÜN: '+(x.product||'-'),'MİKTAR: '+(x.sqm||0)+' M²','İL / İLÇE: '+(x.city||'-')+' / '+(x.district||'-'),'İRTİBAT: '+(x.phone||'-'),'SEVKİYAT TARİHİ: '+(x.date||'-'),'ÇEKİCİ: '+(x.tractor||'-'),'DORSE: '+(x.trailer||'-'),'ŞOFÖR: '+(x.driver||'-'),'ŞOFÖR TEL: '+(x.soforTel||x.tc||'-'),'NAKLİYE: '+(x.freight?Number(x.freight).toLocaleString('tr-TR')+' TL':'-'),'ÖDEME: '+(x.freightPayment||'-'),'KDV: '+(x.vat||'-'),x.note?'NOT: '+x.note:''].filter(Boolean).join('\n'); if(navigator.share){navigator.share({title:'CENKAR SEVKİYAT',text:t}).catch(function(e){if(e&&e.name!=='AbortError') alert('PAYLAŞIM AÇILAMADI.');});}else{navigator.clipboard.writeText(t).then(function(){alert('BİLGİLER KOPYALANDI. WHATSAPP’A YAPIŞTIRABİLİRSİNİZ.');});}}catch(e){alert('PAYLAŞIM AÇILAMADI.');}};</script></body>
+<script>
+window.shareOrder=function(id){
+  try{
+    var orders=JSON.parse(localStorage.getItem('cenkar_orders')||'[]');
+    var x=orders.find(function(o){return String(o.id)===String(id);});
+    if(!x){alert('SİPARİŞ BULUNAMADI.');return;}
+
+    var t=[
+      'CENKAR SEVKİYAT','',
+      'MÜŞTERİ: '+(x.customer||'-'),
+      'ÜRÜN: '+(x.product||'-'),
+      x.product==='Yerden Isıtma'?'FOLYO: '+(x.foil||'-'):null,
+      x.product==='Mantolama'?'KALINLIK: '+(x.thickness||'-')+' CM':null,
+      'YOĞUNLUK: '+(x.density||'-')+' DNS',
+      'MİKTAR: '+(x.sqm||0)+' M²',
+      'İL / İLÇE: '+(x.city||'-')+' / '+(x.district||'-'),
+      'İRTİBAT: '+(x.phone||'-'),'',
+      'SEVKİYAT TARİHİ: '+(x.date||'-'),
+      'ÇEKİCİ: '+(x.tractor||'-'),
+      'DORSE: '+(x.trailer||'-'),
+      'ŞOFÖR: '+(x.driver||'-'),
+      'ŞOFÖR TEL: '+(x.soforTel||'-'),
+      'NAKLİYE: '+(x.freight?Number(x.freight).toLocaleString('tr-TR')+' TL':'-'),
+      'ÖDEME: '+(x.freightPayment||'-'),
+      'KDV: '+(x.vat||'-'),
+      x.note?'NOT: '+x.note:null
+    ].filter(Boolean).join('\n');
+
+    if(navigator.share){
+      navigator.share({title:'CENKAR SEVKİYAT',text:t}).catch(function(e){
+        if(e && e.name!=='AbortError') alert('PAYLAŞIM AÇILAMADI.');
+      });
+    }else if(navigator.clipboard){
+      navigator.clipboard.writeText(t).then(function(){
+        alert('BİLGİLER KOPYALANDI. WHATSAPP’A YAPIŞTIRABİLİRSİNİZ.');
+      });
+    }else{
+      var ta=document.createElement('textarea');
+      ta.value=t; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      alert('BİLGİLER KOPYALANDI. WHATSAPP’A YAPIŞTIRABİLİRSİNİZ.');
+    }
+  }catch(e){
+    alert('PAYLAŞIM AÇILAMADI.');
+  }
+};
+</script></body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "cenkar-v5-share-final-1";
+const CACHE_NAME = "cenkar-v5-paylas-kesin-1";
 const APP_SHELL = ["./", "./index.html"];
 
 self.addEventListener("install", event => {
