@@ -35,7 +35,7 @@ input[type="text"], textarea { text-transform: uppercase; }
 input[type="text"], input[type="search"], textarea { text-transform: uppercase !important; }
 </style>
 
-</head>
+<style>button,.tab,.nav-btn,[role=button]{position:relative;z-index:20;pointer-events:auto}</style></head>
 <body>
 <header>
 <h1>🚚 Cenkar Sevkiyat</h1>
@@ -342,5 +342,22 @@ document.addEventListener('input', function(e){
 })();
 </script>
 
-</body>
+<script>
+window.shareOrder=async function(id){
+ const a=JSON.parse(localStorage.getItem('cenkarOrders')||'[]');
+ const x=a.find(o=>String(o.id)===String(id));
+ if(!x){alert('SİPARİŞ BULUNAMADI.');return;}
+ const t=['CENKAR SEVKİYAT','',
+ 'MÜŞTERİ: '+(x.customer||'-'),'ÜRÜN: '+(x.product||'-'),
+ 'MİKTAR: '+(x.sqm??0)+' M²','İL / İLÇE: '+(x.city||'-')+' / '+(x.district||'-'),
+ 'İRTİBAT: '+(x.phone||'-'),'SEVKİYAT TARİHİ: '+(x.date||'-'),
+ 'ÇEKİCİ: '+(x.tractor||'-'),'DORSE: '+(x.trailer||'-'),
+ 'ŞOFÖR: '+(x.driver||'-'),'ŞOFÖR TEL: '+(x.soforTel||x.tc||'-'),
+ 'NAKLİYE: '+(x.freight||'-')+' TL','ÖDEME: '+(x.freightPayment||'-'),
+ 'KDV: '+(x.vat||'-'),x.note?'NOT: '+x.note:''].filter(Boolean).join('\n');
+ try{if(navigator.share){await navigator.share({title:'CENKAR SEVKİYAT',text:t});}
+ else{await navigator.clipboard.writeText(t);alert('BİLGİLER KOPYALANDI. WHATSAPP’A YAPIŞTIRABİLİRSİNİZ.');}}
+ catch(e){if(e.name!=='AbortError')alert('PAYLAŞIM AÇILAMADI.');}
+};
+</script></body>
 </html>
