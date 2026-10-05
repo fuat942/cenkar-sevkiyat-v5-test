@@ -55,15 +55,15 @@ button{font-family:inherit}
 input[type=text],textarea{text-transform:uppercase}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <header>
 <h1>🚚 Cenkar Sevkiyat</h1>
 <div class="tabs">
-<button class="tab active" data-section="new">➕ Yeni Sipariş</button>
-<button class="tab" data-section="list">📋 Siparişler</button>
-<button class="tab" data-section="completed">✅ Tamamlananlar</button>
+<button type="button" class="tab active" data-section="new" onclick="showSection('new',this)">➕ Yeni Sipariş</button>
+<button type="button" class="tab" data-section="list" onclick="showSection('list',this)">📋 Siparişler</button>
+<button type="button" class="tab" data-section="completed" onclick="showSection('completed',this)">✅ Tamamlananlar</button>
 </div>
 </header>
 
@@ -201,7 +201,8 @@ input[type=text],textarea{text-transform:uppercase}
 
 <script>
 const $=id=>document.getElementById(id);
-let data=JSON.parse(localStorage.getItem('cenkar_orders')||'[]');
+let data=[];
+try{ data=JSON.parse(localStorage.getItem('cenkar_orders')||'[]'); if(!Array.isArray(data))data=[]; }catch(e){ console.warn('Yerel sipariş verisi okunamadı',e); data=[]; }
 let editingId=null,selectedOrderForFile=null,cloudUser=null,cloudBusy=false,cloudSyncTimer=null,cloudLastSync=0;
 
 const SUPABASE_URL='https://tcyivfotanbyeaofsxkr.supabase.co';
@@ -233,13 +234,17 @@ function editProductChanged(){
  const old=$('e_density').value;setDensity($('e_density'),p,old);if(isM)setThickness($('e_thickness'));
 }
 function show(section,btn){
+ const target=$(section);
+ if(!target)return;
  document.querySelectorAll('main>section').forEach(s=>s.classList.add('hidden'));
- $(section).classList.remove('hidden');
- document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+ target.classList.remove('hidden');
+ document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+ if(btn)btn.classList.add('active');
  if(section==='list'){populateCities();renderActive()}
  if(section==='completed'){populateCities();renderCompleted()}
 }
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.section,b));
+window.showSection=show;
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',function(e){e.preventDefault();show(this.dataset.section,this);}));
 
 // Metin alanları: boşluk tuşuna ve iOS seçim imlecine müdahale etmiyoruz.
 // Büyük harf CSS ile görünür, kayıt sırasında da normalize edilir.
@@ -249,7 +254,7 @@ function upperTR(v){return String(v??'').toLocaleUpperCase('tr-TR')}
 function save(){
  const customer=upperTR($('customer').value).trim();if(!customer)return alert('Müşteri adını girin.');
  const item={id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,city:upperTR($('city').value).trim(),district:upperTR($('district').value).trim(),sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,thickness:$('thickness').value,date:$('date').value,tractor:upperTR($('tractor').value).trim(),trailer:upperTR($('trailer').value).trim(),driver:upperTR($('driver').value).trim(),soforTel:$('soforTel').value.trim(),freight:parseFlexibleNumber($('freight').value),freightPayment:$('freightPayment').value,vat:$('vat').value,note:upperTR($('note').value).trim(),completed:false,updatedAt:Date.now()};
- data.unshift(item);saveLocal();cloudUpsert(item);alert('Sipariş kaydedildi.');resetForm();
+ data.unshift(item);saveLocal();cloudUpsert(item);resetForm();populateCities();renderActive();renderCompleted();show('list',document.querySelector('.tab[data-section="list"]'));alert('Sipariş kaydedildi ve Siparişler bölümüne aktarıldı.');
 }
 function resetForm(){
  document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');
@@ -507,7 +512,18 @@ $('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signO
 setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));productChanged();
 setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));editProductChanged();
 initCloud();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+// Eski GitHub Pages Service Worker önbelleğini bir kez temizle; eski JS sekmeleri kilitlemesin.
+if('serviceWorker' in navigator){
+  const SW_RESET='cenkar_sw_reset_20261005_v2';
+  if(!sessionStorage.getItem(SW_RESET)){
+    navigator.serviceWorker.getRegistrations().then(regs=>{
+      sessionStorage.setItem(SW_RESET,'1');
+      return Promise.all(regs.map(r=>r.unregister()));
+    }).then(()=>location.reload()).catch(()=>{sessionStorage.setItem(SW_RESET,'1');});
+  }else{
+    navigator.serviceWorker.register('./service-worker.js?v=20261005v2',{updateViaCache:'none'}).catch(()=>{});
+  }
+}
 </script>
 </body>
 </html>
