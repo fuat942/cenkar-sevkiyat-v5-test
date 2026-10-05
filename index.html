@@ -217,7 +217,7 @@ function initSupabaseClient(){
 }
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function saveLocal(){localStorage.setItem('cenkar_orders',JSON.stringify(data))}
+function saveLocal(){try{localStorage.setItem('cenkar_orders',JSON.stringify(data));return true}catch(e){console.error('Yerel kayıt hatası:',e);alert('Kayıt yapılamadı: telefon hafızasında yerel kayıt sorunu var.');return false}}
 function setDensity(select,product,old){
  select.innerHTML='';
  if(product==='Mantolama'){for(let i=8;i<=24;i+=2)select.add(new Option(i,i))}
@@ -264,33 +264,27 @@ window.showSection=showSection;
 function parseFlexibleNumber(v){const s=String(v??'').trim().replace(/\s/g,'');if(!s)return 0;if(s.includes(','))return Number(s.replace(/\./g,'').replace(',','.'))||0;if(/^\d+\.\d{3}$/.test(s))return Number(s.replace(/\./g,''))||0;return Number(s)||0}
 function upperTR(v){return String(v??'').toLocaleUpperCase('tr-TR')}
 function save(){
- const customer=upperTR($('customer').value).trim();
- if(!customer){alert('Müşteri adını girin.');return;}
- const item={
-  id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,
-  city:upperTR($('city').value).trim(),district:upperTR($('district').value).trim(),
-  sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,
-  thickness:$('thickness').value,date:$('date').value,
-  tractor:upperTR($('tractor').value).trim(),trailer:upperTR($('trailer').value).trim(),
-  driver:upperTR($('driver').value).trim(),soforTel:$('soforTel').value.trim(),
-  freight:parseFlexibleNumber($('freight').value),freightPayment:$('freightPayment').value,
-  vat:$('vat').value,note:upperTR($('note').value).trim(),completed:false,updatedAt:Date.now()
- };
  try{
-  data=Array.isArray(data)?data:[];
+  const customer=upperTR($('customer').value).trim();
+  if(!customer){alert('Müşteri adını girin.');return;}
+  const item={
+   id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,
+   city:upperTR($('city').value).trim(),district:upperTR($('district').value).trim(),
+   sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,
+   thickness:$('thickness').value,date:$('date').value,
+   tractor:upperTR($('tractor').value).trim(),trailer:upperTR($('trailer').value).trim(),
+   driver:upperTR($('driver').value).trim(),soforTel:$('soforTel').value.trim(),
+   freight:parseFlexibleNumber($('freight').value),freightPayment:$('freightPayment').value,
+   vat:$('vat').value,note:upperTR($('note').value).trim(),completed:false,updatedAt:Date.now()
+  };
+  if(!Array.isArray(data))data=[];
   data.unshift(item);
-  saveLocal();
+  if(!saveLocal())return;
   alert('Sipariş kaydedildi.');
-  const listBtn=document.querySelector('.tab[data-section="list"]');
-  showSection('list',listBtn);
-  populateCities();
-  renderActive();
-  renderCompleted();
-  resetForm();
- }catch(err){
-  console.error('KAYIT HATASI:',err);
-  alert('Kayıt sırasında hata oluştu: '+(err&&err.message?err.message:'Bilinmeyen hata'));
- }
+  try{populateCities();renderActive();renderCompleted();}catch(e){console.error('Liste yenileme hatası:',e)}
+  try{const listBtn=document.querySelector('.tab[data-section="list"]');showSection('list',listBtn)}catch(e){console.error('Sekme geçiş hatası:',e)}
+  try{resetForm()}catch(e){console.error('Form temizleme hatası:',e)}
+ }catch(e){console.error('Kayıt hatası:',e);alert('Sipariş kaydedilirken hata oluştu. Hata: '+(e&&e.message?e.message:e));}
 }
 function resetForm(){
  document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');
@@ -563,7 +557,7 @@ $('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signO
 
 setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));productChanged();
 setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));editProductChanged();
-initCloud();
+// Bulut başlangıçta otomatik çalışmaz. Sadece manuel senkronizasyon için kullanılabilir.
 // Service worker devre dışı: eski önbellek kullanılmasın.
 </script>
 </body>
