@@ -76,7 +76,7 @@ input[type=text],textarea{text-transform:uppercase}
 <section id="new">
 <div class="card">
 <div class="grid">
-<div class="full"><label>Müşteri</label><input id="customer" list="customerSuggestions" placeholder="Müşteri adı" autocomplete="off"><datalist id="customerSuggestions"></datalist></div>
+<div class="full"><label>Müşteri</label><input id="customer" placeholder="Müşteri adı"></div>
 
 <div><label>Ürün çeşidi</label><select id="product">
 <option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option>
@@ -263,31 +263,6 @@ window.showSection=showSection;
 
 function parseFlexibleNumber(v){const s=String(v??'').trim().replace(/\s/g,'');if(!s)return 0;if(s.includes(','))return Number(s.replace(/\./g,'').replace(',','.'))||0;if(/^\d+\.\d{3}$/.test(s))return Number(s.replace(/\./g,''))||0;return Number(s)||0}
 function upperTR(v){return String(v??'').toLocaleUpperCase('tr-TR')}
-
-// Eski siparişlerden müşteri telefonunu bulur. Ayrı bir müşteri tablosu oluşturmaz;
-// mevcut yerel sipariş verilerini kullanır. En güncel, telefon numarası olan kayıt önceliklidir.
-function customerHistory(){
- const seen=new Set(),out=[];
- const arr=Array.isArray(data)?data.slice().sort((a,b)=>Number(b.updatedAt||b.id||0)-Number(a.updatedAt||a.id||0)):[];
- for(const x of arr){
-   const name=upperTR(x.customer||'').trim();
-   if(!name||seen.has(name))continue;
-   seen.add(name);
-   out.push({name,phone:String(x.phone||'').trim()});
- }
- return out;
-}
-function populateCustomerSuggestions(){
- const dl=$('customerSuggestions');
- if(!dl)return;
- dl.innerHTML=customerHistory().map(x=>`<option value="${esc(x.name)}"></option>`).join('');
-}
-function fillCustomerPhoneFromHistory(){
- const name=upperTR($('customer').value).trim();
- if(!name)return;
- const found=customerHistory().find(x=>x.name===name && x.phone);
- if(found && !$('phone').value.trim())$('phone').value=found.phone;
-}
 function save(){
  try{
   const customer=upperTR($('customer').value).trim();
@@ -306,7 +281,7 @@ function save(){
   data.unshift(item);
   if(!saveLocal())return;
   alert('Sipariş kaydedildi.');
-  try{populateCities();populateCustomerSuggestions();renderActive();renderCompleted();}catch(e){console.error('Liste yenileme hatası:',e)}
+  try{populateCities();renderActive();renderCompleted();}catch(e){console.error('Liste yenileme hatası:',e)}
   try{const listBtn=document.querySelector('.tab[data-section="list"]');showSection('list',listBtn)}catch(e){console.error('Sekme geçiş hatası:',e)}
   try{resetForm()}catch(e){console.error('Form temizleme hatası:',e)}
  }catch(e){console.error('Kayıt hatası:',e);alert('Sipariş kaydedilirken hata oluştu. Hata: '+(e&&e.message?e.message:e));}
@@ -496,83 +471,22 @@ function exportCompleted(){
 }
 
 let cloudLastError='';
-async function cloudUpsert(x){
- if(!cloudUser||!sb) return {ok:false,message:'Bulut oturumu yok.'};
- const {error}=await sb.from('cenkar_orders').upsert({
-  id:x.id,user_id:cloudUser.id,data:x,
-  updated_at:new Date(x.updatedAt||Date.now()).toISOString()
- });
- if(error){
-  console.warn('Cloud upsert error',error);
-  return {ok:false,message:error.message||String(error)};
- }
- return {ok:true};
-}
-async function cloudDelete(id){
- if(!cloudUser||!sb)return {ok:false,message:'Bulut oturumu yok.'};
- const {error}=await sb.from('cenkar_orders').delete().eq('id',id).eq('user_id',cloudUser.id);
- if(error){console.warn('Cloud delete error',error);return {ok:false,message:error.message||String(error)}}
- return {ok:true};
-}
+async function cloudUpsert(x){if(!cloudUser||!sb)return {ok:false,message:'Bulut oturumu yok.'};const {error}=await sb.from('cenkar_orders').upsert({id:x.id,user_id:cloudUser.id,data:x,updated_at:new Date(x.updatedAt||Date.now()).toISOString()});if(error){console.warn(error);return {ok:false,message:error.message||String(error)}}return {ok:true}}
+async function cloudDelete(id){if(cloudUser&&sb)await sb.from('cenkar_orders').delete().eq('id',id)}
 async function cloudRefresh(){
- if(cloudBusy)return {ok:false,message:'Senkronizasyon zaten devam ediyor. Lütfen bitmesini bekleyin.'};
- if(!cloudUser||!sb)return {ok:false,message:'Bulut hesabına giriş yapılmamış.'};
- cloudBusy=true; cloudLastError='';
- const stats={remoteBefore:0,remoteAfter:0,localBefore:data.length,added:0,uploaded:0,updatedFromCloud:0,errors:[]};
+ if(!cloudUser||!sb)return {ok:false,message:'Bulut hesabına giriş yapılmamış.',before:0,incoming:0,uploaded:0,total:data.length};
+ if(cloudBusy)return {ok:false,message:'Senkronizasyon zaten devam ediyor.',before:0,incoming:0,uploaded:0,total:data.length};
+ cloudBusy=true;let incoming=0,uploaded=0;
  try{
   const {data:rows,error}=await sb.from('cenkar_orders').select('id,data,updated_at').eq('user_id',cloudUser.id).order('updated_at',{ascending:false});
   if(error)throw error;
-  stats.remoteBefore=(rows||[]).length;
-  const remoteMap=new Map((rows||[]).map(r=>[String(r.id),r.data||{}]));
-
-  // Locally deleted records are also removed from the cloud, with errors reported.
-  for(const id of deletedIds){
-   const r=await cloudDelete(id);
-   if(!r.ok)stats.errors.push(`Silme (${id}): ${r.message}`);
-   remoteMap.delete(String(id));
-  }
-
+  const remoteMap=new Map((rows||[]).map(r=>[String(r.id),r.data||{}]));const before=remoteMap.size;
+  for(const id of deletedIds){const d=await cloudDelete(id);if(!d.ok)throw new Error(d.message);remoteMap.delete(String(id));}
   const localMap=new Map(data.map(x=>[String(x.id),x]));
-
-  // Merge: newer version wins. Remote-only records are added locally.
-  for(const [id,remote] of remoteMap){
-   if(deletedIds.includes(id))continue;
-   const local=localMap.get(id);
-   if(!local){localMap.set(id,remote);stats.added++;continue;}
-   if(Number(local.updatedAt||0)>Number(remote.updatedAt||0)){
-    const r=await cloudUpsert(local);
-    if(r.ok)stats.uploaded++;else stats.errors.push(`Yükleme (${id}): ${r.message}`);
-   }else if(Number(remote.updatedAt||0)>Number(local.updatedAt||0)){
-    localMap.set(id,remote);stats.updatedFromCloud++;
-   }
-  }
-
-  // Upload local-only or locally newer records.
-  for(const local of localMap.values()){
-   if(deletedIds.includes(String(local.id)))continue;
-   const remote=remoteMap.get(String(local.id));
-   if(!remote || Number(local.updatedAt||0)>Number(remote.updatedAt||0)){
-    const r=await cloudUpsert(local);
-    if(r.ok)stats.uploaded++;else stats.errors.push(`Yükleme (${local.id}): ${r.message}`);
-   }
-  }
-
-  // Re-read cloud after all writes. This is the actual success check.
-  const {data:verifyRows,error:verifyError}=await sb.from('cenkar_orders').select('id,data,updated_at').eq('user_id',cloudUser.id);
-  if(verifyError)throw verifyError;
-  stats.remoteAfter=(verifyRows||[]).length;
-  if(stats.errors.length)throw new Error(stats.errors.join('\n'));
-
-  data=[...localMap.values()]
-   .filter(x=>!deletedIds.includes(String(x.id)))
-   .sort((a,b)=>Number(b.updatedAt||b.id)-Number(a.updatedAt||a.id));
-  saveLocal();populateCities();renderActive();renderCompleted();cloudLastSync=Date.now();
-  return {ok:true,stats};
- }catch(e){
-  cloudLastError=e&&e.message?e.message:String(e);
-  console.warn('Cloud sync error',e);
-  return {ok:false,message:cloudLastError,stats};
- }finally{cloudBusy=false}
+  for(const [id,remote] of remoteMap){if(deletedIds.includes(id))continue;const local=localMap.get(id);if(!local){localMap.set(id,remote);incoming++;}else if(Number(local.updatedAt||0)>Number(remote.updatedAt||0)){const u=await cloudUpsert(local);if(!u.ok)throw new Error('ID '+id+': '+u.message);uploaded++;}else if(Number(remote.updatedAt||0)>Number(local.updatedAt||0))localMap.set(id,remote);}
+  for(const local of localMap.values()){if(deletedIds.includes(String(local.id)))continue;const remote=remoteMap.get(String(local.id));if(!remote||Number(local.updatedAt||0)>Number(remote.updatedAt||0)){const u=await cloudUpsert(local);if(!u.ok)throw new Error('ID '+local.id+': '+u.message);uploaded++;}}
+  data=[...localMap.values()].filter(x=>!deletedIds.includes(String(x.id))).sort((a,b)=>Number(b.updatedAt||b.id)-Number(a.updatedAt||a.id));saveLocal();populateCities();renderActive();renderCompleted();cloudLastSync=Date.now();return {ok:true,before,incoming,uploaded,total:data.length};
+ }catch(e){cloudLastError=e?.message||String(e);return {ok:false,message:cloudLastError,before:0,incoming,uploaded,total:data.length};}finally{cloudBusy=false}
 }
 
 function startCloudAutoSync(){ stopCloudAutoSync(); }
@@ -611,7 +525,6 @@ async function initCloud(){
 // Bulut otomatik senkronizasyonu KAPALI. Yalnızca 'Şimdi Senkronize Et' ile çalışır.
 
 
-$('customer').oninput=fillCustomerPhoneFromHistory;$('customer').onchange=fillCustomerPhoneFromHistory;populateCustomerSuggestions();
 $('product').onchange=productChanged;$('saveBtn').onclick=function(e){e.preventDefault();save();};$('parseOrderBtn').onclick=()=>applyOrder();$('parseShipmentBtn').onclick=()=>applyShipment('new');
 $('search').oninput=renderActive;$('fcity').onchange=renderActive;$('fproduct').onchange=renderActive;$('doneSearch').oninput=renderCompleted;$('doneCity').onchange=renderCompleted;$('doneProduct').onchange=renderCompleted;
 $('exportBtn').onclick=exportCompleted;$('closeEdit').onclick=closeEdit;$('cancelEdit').onclick=closeEdit;$('saveEdit').onclick=saveEdit;$('editParseShipment').onclick=()=>applyShipment('edit');
@@ -620,20 +533,7 @@ $('cloudBtn').onclick=()=>$('cloudModal').classList.add('show');
 $('cloudClose').onclick=()=>$('cloudModal').classList.remove('show');
 $('cloudLogin').onclick=cloudLogin;
 $('cloudSignup').onclick=cloudSignup;
-$('cloudSync').onclick=async()=>{
- const btn=$('cloudSync');
- btn.disabled=true;btn.textContent='⏳ Senkronizasyon yapılıyor...';
- try{
-  const result=await cloudRefresh();
-  if(result.ok){
-   const st=result.stats||{};
-   alert(`Senkronizasyon tamamlandı.\n\nBuluttaki kayıt: ${st.remoteAfter}\nTelefondaki kayıt: ${data.length}\nBuluttan telefona eklenen: ${st.added}\nBuluta yüklenen/güncellenen: ${st.uploaded}`);
-  }else{
-   const st=result.stats||{};
-   alert(`Senkronizasyon başarısız.\n\nHATA:\n${result.message||'Bilinmeyen hata'}\n\nBulutta görülen kayıt: ${st.remoteBefore??'?'}\nTelefondaki kayıt: ${st.localBefore??data.length}`);
-  }
- }finally{btn.disabled=false;btn.textContent='☁️ Şimdi Senkronize Et';}
-};
+$('cloudSync').onclick=async()=>{const b=$('cloudSync');if(cloudBusy)return;b.disabled=true;b.textContent='⏳ Senkronize ediliyor...';const r=await cloudRefresh();b.disabled=false;b.textContent='☁️ Şimdi Senkronize Et';if(r.ok){alert('SENKRONİZASYON TAMAMLANDI\n\nBulutta önce: '+r.before+' kayıt\nBuluta gönderilen/güncellenen: '+r.uploaded+'\nBuluttan telefona gelen: '+r.incoming+'\nTelefonda toplam: '+r.total);}else{alert('SENKRONİZASYON BAŞARISIZ\n\n'+r.message);}};
 $('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();$('cloudModal').classList.remove('show')};
 
 setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));productChanged();
