@@ -114,7 +114,7 @@ input[type=text],textarea{text-transform:uppercase}
 <div class="full"><label>Not</label><textarea id="note" placeholder="İsteğe bağlı"></textarea></div>
 </div>
 <button class="primary" id="saveBtn">Siparişi Kaydet</button>
-<p class="small">Siparişler telefonda saklanır ve Bulut bağlantısı açıksa Supabase'e senkronize edilir.</p>
+<p class="small">Siparişler telefonda saklanır. Bulut yalnızca siz 'Şimdi Senkronize Et' düğmesine bastığınızda çalışır.</p>
 </div>
 </section>
 
@@ -202,7 +202,9 @@ input[type=text],textarea{text-transform:uppercase}
 <script>
 const $=id=>document.getElementById(id);
 let data=[];
+let deletedIds=[];
 try{ data=JSON.parse(localStorage.getItem('cenkar_orders')||'[]'); if(!Array.isArray(data))data=[]; }catch(e){ console.warn('Yerel sipariş verisi okunamadı',e); data=[]; }
+try{ deletedIds=JSON.parse(localStorage.getItem('cenkar_deleted_ids')||'[]'); if(!Array.isArray(deletedIds))deletedIds=[]; }catch(e){ deletedIds=[]; }
 let editingId=null,selectedOrderForFile=null,cloudUser=null,cloudBusy=false,cloudSyncTimer=null,cloudLastSync=0;
 
 const SUPABASE_URL='https://tcyivfotanbyeaofsxkr.supabase.co';
@@ -282,7 +284,7 @@ function save(){
  renderActive();
  renderCompleted();
  const listBtn=document.querySelector('.tab[data-section="list"]');
- show('list',listBtn);
+ showSection('list',listBtn);
  resetForm();
  try{cloudUpsert(item).catch(e=>console.warn('Bulut kayıt hatası:',e));}catch(e){}
  alert('Sipariş kaydedildi. Siparişler bölümünde görüntüleniyor.');
@@ -338,7 +340,7 @@ function completeOrder(id){
    renderCompleted();
  }
 }
-function delOrder(id){if(confirm('Bu sipariş silinsin mi?')){data=data.filter(x=>x.id!==id);saveLocal();cloudDelete(id);renderActive();renderCompleted()}}
+function delOrder(id){if(confirm('Bu sipariş silinsin mi?')){data=data.filter(x=>x.id!==id);if(!deletedIds.includes(String(id)))deletedIds.push(String(id));localStorage.setItem('cenkar_deleted_ids',JSON.stringify(deletedIds));saveLocal();if(cloudUser&&sb)cloudDelete(id);renderActive();renderCompleted()}}
 
 function openEdit(id){
  const x=data.find(a=>a.id===id);if(!x)return;editingId=id;
@@ -476,25 +478,41 @@ async function cloudDelete(id){if(cloudUser&&sb)await sb.from('cenkar_orders').d
 async function cloudRefresh(){
  if(!cloudUser||!sb||cloudBusy)return false;cloudBusy=true;
  try{
-  const {data:rows,error}=await sb.from('cenkar_orders').select('id,data,updated_at').eq('user_id',cloudUser.id).order('updated_at',{ascending:false});if(error)throw error;
-  const map=new Map(data.map(x=>[String(x.id),x]));
-  for(const r of rows||[]){
-   const remote=r.data||{},local=map.get(String(r.id));
-   if(!local||Number(remote.updatedAt||0)>Number(local.updatedAt||0))map.set(String(r.id),remote);
-   else if(local&&Number(local.updatedAt||0)>Number(remote.updatedAt||0))await cloudUpsert(local);
+  const {data:rows,error}=await sb.from('cenkar_orders').select('id,data,updated_at').eq('user_id',cloudUser.id).order('updated_at',{ascending:false});
+  if(error)throw error;
+  const remoteMap=new Map((rows||[]).map(r=>[String(r.id),r.data||{}]));
+  // First permanently apply locally recorded deletions to the cloud.
+  for(const id of deletedIds){
+   await sb.from('cenkar_orders').delete().eq('id',id).eq('user_id',cloudUser.id);
+   remoteMap.delete(String(id));
   }
-  const remoteIds=new Set((rows||[]).map(r=>String(r.id)));
-  for(const x of map.values())if(!remoteIds.has(String(x.id)))await cloudUpsert(x);
-  data=[...map.values()].sort((a,b)=>Number(b.updatedAt||b.id)-Number(a.updatedAt||a.id));
-  saveLocal();populateCities();renderActive();renderCompleted();cloudLastSync=Date.now();return true;
+  const localMap=new Map(data.map(x=>[String(x.id),x]));
+  // Merge existing records: newest version wins.
+  for(const [id,remote] of remoteMap){
+   if(deletedIds.includes(id))continue;
+   const local=localMap.get(id);
+   if(!local){localMap.set(id,remote);continue;}
+   if(Number(local.updatedAt||0)>Number(remote.updatedAt||0)){
+    await cloudUpsert(local);
+   }else if(Number(remote.updatedAt||0)>Number(local.updatedAt||0)){
+    localMap.set(id,remote);
+   }
+  }
+  // Upload local records that are genuinely local/new or newer than cloud.
+  for(const local of localMap.values()){
+   if(deletedIds.includes(String(local.id)))continue;
+   const remote=remoteMap.get(String(local.id));
+   if(!remote || Number(local.updatedAt||0)>Number(remote.updatedAt||0))await cloudUpsert(local);
+  }
+  data=[...localMap.values()].filter(x=>!deletedIds.includes(String(x.id))).sort((a,b)=>Number(b.updatedAt||b.id)-Number(a.updatedAt||a.id));
+  saveLocal();
+  populateCities();renderActive();renderCompleted();cloudLastSync=Date.now();
+  return true;
  }catch(e){console.warn('Cloud sync error',e);return false}finally{cloudBusy=false}
 }
-function startCloudAutoSync(){
- if(cloudSyncTimer)clearInterval(cloudSyncTimer);
- cloudSyncTimer=null;
- if(!cloudUser||!sb)return;
- cloudSyncTimer=setInterval(()=>{if(document.visibilityState==='visible')cloudRefresh()},8000);
-}
+
+function startCloudAutoSync(){ stopCloudAutoSync(); }
+
 function stopCloudAutoSync(){
  if(cloudSyncTimer)clearInterval(cloudSyncTimer);
  cloudSyncTimer=null;
@@ -508,26 +526,26 @@ async function cloudLogin(){
  initSupabaseClient(); if(!sb)return alert('Bulut bağlantısı şu anda kullanılamıyor. Siparişler telefonda çalışmaya devam eder.');
  const email=$('cloudEmail').value.trim(),password=$('cloudPassword').value;if(!email||!password)return alert('E-posta ve şifre girin.');
  const {data:r,error}=await sb.auth.signInWithPassword({email,password});if(error)return alert('Giriş yapılamadı: '+error.message);
- cloudUser=r.user;updateCloudUI();await cloudRefresh();startCloudAutoSync();alert('Buluta bağlandı.');
+ cloudUser=r.user;updateCloudUI();stopCloudAutoSync();alert('Buluta bağlandı. Senkronizasyon yalnızca siz istediğinizde yapılır.');
 }
 async function cloudSignup(){
  initSupabaseClient(); if(!sb)return alert('Bulut bağlantısı şu anda kullanılamıyor. Siparişler telefonda çalışmaya devam eder.');
  const email=$('cloudEmail').value.trim(),password=$('cloudPassword').value;if(!email||!password)return alert('E-posta ve şifre girin.');
  const {data:r,error}=await sb.auth.signUp({email,password});if(error)return alert('Hesap oluşturulamadı: '+error.message);
- if(r.user){cloudUser=r.user;updateCloudUI();await cloudRefresh();startCloudAutoSync();alert('Hesap oluşturuldu.')}else alert('Hesap oluşturuldu. E-posta doğrulaması gerekiyorsa e-postanızı kontrol edin.');
+ if(r.user){cloudUser=r.user;updateCloudUI();stopCloudAutoSync();alert('Hesap oluşturuldu. Senkronizasyon yalnızca siz istediğinizde yapılır.')}else alert('Hesap oluşturuldu. E-posta doğrulaması gerekiyorsa e-postanızı kontrol edin.');
 }
 async function initCloud(){
   initSupabaseClient();
   if(!sb){ updateCloudUI(); return; }
   const {data:r}=await sb.auth.getSession();
-  if(r.session){cloudUser=r.session.user;updateCloudUI();await cloudRefresh();startCloudAutoSync()}else updateCloudUI();
+  if(r.session){cloudUser=r.session.user;updateCloudUI();stopCloudAutoSync()}else updateCloudUI();
   sb.auth.onAuthStateChange(async(_e,s)=>{
     cloudUser=s?.user||null;updateCloudUI();
-    if(cloudUser){await cloudRefresh();startCloudAutoSync()}else stopCloudAutoSync();
+    if(cloudUser){stopCloudAutoSync()}else stopCloudAutoSync();
   });
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudUser&&sb)cloudRefresh()});
-window.addEventListener('focus',()=>{if(cloudUser&&sb)cloudRefresh()});
+// Bulut otomatik senkronizasyonu KAPALI. Yalnızca 'Şimdi Senkronize Et' ile çalışır.
+
 
 $('product').onchange=productChanged;$('saveBtn').onclick=function(e){e.preventDefault();save();};$('parseOrderBtn').onclick=()=>applyOrder();$('parseShipmentBtn').onclick=()=>applyShipment('new');
 $('search').oninput=renderActive;$('fcity').onchange=renderActive;$('fproduct').onchange=renderActive;$('doneSearch').oninput=renderCompleted;$('doneCity').onchange=renderCompleted;$('doneProduct').onchange=renderCompleted;
