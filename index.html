@@ -470,23 +470,42 @@ function exportCompleted(){
  XLSX.writeFile(wb,'Cenkar_Tamamlanan_Siparisler.xlsx');
 }
 
-let cloudLastError='';
-async function cloudUpsert(x){if(!cloudUser||!sb)return {ok:false,message:'Bulut oturumu yok.'};const {error}=await sb.from('cenkar_orders').upsert({id:x.id,user_id:cloudUser.id,data:x,updated_at:new Date(x.updatedAt||Date.now()).toISOString()});if(error){console.warn(error);return {ok:false,message:error.message||String(error)}}return {ok:true}}
-async function cloudDelete(id){if(cloudUser&&sb)await sb.from('cenkar_orders').delete().eq('id',id)}
+async function cloudUpsert(x){if(!cloudUser||!sb)return;const {error}=await sb.from('cenkar_orders').upsert({id:x.id,user_id:cloudUser.id,data:x,updated_at:new Date(x.updatedAt||Date.now()).toISOString()});if(error)console.warn(error)}
+async function cloudDelete(id){if(!cloudUser||!sb)return {ok:false,message:'Bulut hesabına giriş yapılmamış.'};const {error}=await sb.from('cenkar_orders').delete().eq('id',id);if(error){console.warn(error);return {ok:false,message:error.message||String(error)}}return {ok:true}}
 async function cloudRefresh(){
- if(!cloudUser||!sb)return {ok:false,message:'Bulut hesabına giriş yapılmamış.',before:0,incoming:0,uploaded:0,total:data.length};
- if(cloudBusy)return {ok:false,message:'Senkronizasyon zaten devam ediyor.',before:0,incoming:0,uploaded:0,total:data.length};
- cloudBusy=true;let incoming=0,uploaded=0;
+ if(!cloudUser||!sb||cloudBusy)return false;cloudBusy=true;
  try{
   const {data:rows,error}=await sb.from('cenkar_orders').select('id,data,updated_at').eq('user_id',cloudUser.id).order('updated_at',{ascending:false});
   if(error)throw error;
-  const remoteMap=new Map((rows||[]).map(r=>[String(r.id),r.data||{}]));const before=remoteMap.size;
-  for(const id of deletedIds){const d=await cloudDelete(id);if(!d.ok)throw new Error(d.message);remoteMap.delete(String(id));}
+  const remoteMap=new Map((rows||[]).map(r=>[String(r.id),r.data||{}]));
+  // First permanently apply locally recorded deletions to the cloud.
+  for(const id of deletedIds){
+   await sb.from('cenkar_orders').delete().eq('id',id).eq('user_id',cloudUser.id);
+   remoteMap.delete(String(id));
+  }
   const localMap=new Map(data.map(x=>[String(x.id),x]));
-  for(const [id,remote] of remoteMap){if(deletedIds.includes(id))continue;const local=localMap.get(id);if(!local){localMap.set(id,remote);incoming++;}else if(Number(local.updatedAt||0)>Number(remote.updatedAt||0)){const u=await cloudUpsert(local);if(!u.ok)throw new Error('ID '+id+': '+u.message);uploaded++;}else if(Number(remote.updatedAt||0)>Number(local.updatedAt||0))localMap.set(id,remote);}
-  for(const local of localMap.values()){if(deletedIds.includes(String(local.id)))continue;const remote=remoteMap.get(String(local.id));if(!remote||Number(local.updatedAt||0)>Number(remote.updatedAt||0)){const u=await cloudUpsert(local);if(!u.ok)throw new Error('ID '+local.id+': '+u.message);uploaded++;}}
-  data=[...localMap.values()].filter(x=>!deletedIds.includes(String(x.id))).sort((a,b)=>Number(b.updatedAt||b.id)-Number(a.updatedAt||a.id));saveLocal();populateCities();renderActive();renderCompleted();cloudLastSync=Date.now();return {ok:true,before,incoming,uploaded,total:data.length};
- }catch(e){cloudLastError=e?.message||String(e);return {ok:false,message:cloudLastError,before:0,incoming,uploaded,total:data.length};}finally{cloudBusy=false}
+  // Merge existing records: newest version wins.
+  for(const [id,remote] of remoteMap){
+   if(deletedIds.includes(id))continue;
+   const local=localMap.get(id);
+   if(!local){localMap.set(id,remote);continue;}
+   if(Number(local.updatedAt||0)>Number(remote.updatedAt||0)){
+    await cloudUpsert(local);
+   }else if(Number(remote.updatedAt||0)>Number(local.updatedAt||0)){
+    localMap.set(id,remote);
+   }
+  }
+  // Upload local records that are genuinely local/new or newer than cloud.
+  for(const local of localMap.values()){
+   if(deletedIds.includes(String(local.id)))continue;
+   const remote=remoteMap.get(String(local.id));
+   if(!remote || Number(local.updatedAt||0)>Number(remote.updatedAt||0))await cloudUpsert(local);
+  }
+  data=[...localMap.values()].filter(x=>!deletedIds.includes(String(x.id))).sort((a,b)=>Number(b.updatedAt||b.id)-Number(a.updatedAt||a.id));
+  saveLocal();
+  populateCities();renderActive();renderCompleted();cloudLastSync=Date.now();
+  return true;
+ }catch(e){console.warn('Cloud sync error',e);return false}finally{cloudBusy=false}
 }
 
 function startCloudAutoSync(){ stopCloudAutoSync(); }
@@ -539,6 +558,8 @@ $('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signO
 setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));productChanged();
 setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));editProductChanged();
 // Bulut başlangıçta otomatik çalışmaz. Sadece manuel senkronizasyon için kullanılabilir.
+// Eski Service Worker / cache temizliği: yerel sipariş verilerine dokunmaz.
+(async()=>{try{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs){await r.unregister();}}if('caches' in window){const ks=await caches.keys();for(const k of ks){await caches.delete(k);}}}catch(e){console.warn('Eski önbellek temizlenemedi',e);}})();
 // Service worker devre dışı: eski önbellek kullanılmasın.
 </script>
 </body>
