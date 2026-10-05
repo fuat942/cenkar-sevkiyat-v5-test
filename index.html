@@ -54,6 +54,22 @@ button{font-family:inherit}
 @media(max-width:350px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
 input[type=text],textarea{text-transform:uppercase}
 </style>
+<script>
+// Eski Service Worker varsa kaldır ve cache'leri temizle. Sipariş localStorage'ına dokunma.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async function(){
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const reg of regs) { await reg.unregister(); }
+      if (window.caches) {
+        const keys = await caches.keys();
+        for (const key of keys) { await caches.delete(key); }
+      }
+      console.log('Eski Service Worker ve cache temizlendi.');
+    } catch(e) { console.warn('Service Worker temizleme hatası', e); }
+  });
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
