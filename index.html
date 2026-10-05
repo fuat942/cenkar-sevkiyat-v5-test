@@ -274,20 +274,23 @@ function save(){
   tractor:upperTR($('tractor').value).trim(),trailer:upperTR($('trailer').value).trim(),
   driver:upperTR($('driver').value).trim(),soforTel:$('soforTel').value.trim(),
   freight:parseFlexibleNumber($('freight').value),freightPayment:$('freightPayment').value,
-  vat:$('vat').value,note:upperTR($('note').value).trim(),
-  completed:false,updatedAt:Date.now()
+  vat:$('vat').value,note:upperTR($('note').value).trim(),completed:false,updatedAt:Date.now()
  };
- data=Array.isArray(data)?data:[];
- data.unshift(item);
- saveLocal();
- populateCities();
- renderActive();
- renderCompleted();
- const listBtn=document.querySelector('.tab[data-section="list"]');
- showSection('list',listBtn);
- resetForm();
- try{cloudUpsert(item).catch(e=>console.warn('Bulut kayıt hatası:',e));}catch(e){}
- alert('Sipariş kaydedildi. Siparişler bölümünde görüntüleniyor.');
+ try{
+  data=Array.isArray(data)?data:[];
+  data.unshift(item);
+  saveLocal();
+  alert('Sipariş kaydedildi.');
+  const listBtn=document.querySelector('.tab[data-section="list"]');
+  showSection('list',listBtn);
+  populateCities();
+  renderActive();
+  renderCompleted();
+  resetForm();
+ }catch(err){
+  console.error('KAYIT HATASI:',err);
+  alert('Kayıt sırasında hata oluştu: '+(err&&err.message?err.message:'Bilinmeyen hata'));
+ }
 }
 function resetForm(){
  document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');
@@ -555,16 +558,13 @@ $('cloudBtn').onclick=()=>$('cloudModal').classList.add('show');
 $('cloudClose').onclick=()=>$('cloudModal').classList.remove('show');
 $('cloudLogin').onclick=cloudLogin;
 $('cloudSignup').onclick=cloudSignup;
-$('cloudSync').onclick=async()=>{await cloudRefresh();alert('Senkronizasyon tamamlandı.')};
+$('cloudSync').onclick=async()=>{const ok=await cloudRefresh();alert(ok?'Senkronizasyon tamamlandı.':'Senkronizasyon yapılamadı.');};
 $('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();$('cloudModal').classList.remove('show')};
 
 setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));productChanged();
 setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));editProductChanged();
 initCloud();
-// Service worker kaydı mevcut sürümle uyumlu bırakıldı.
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./service-worker.js').catch(function(){});
-}
+// Service worker devre dışı: eski önbellek kullanılmasın.
 </script>
 </body>
 </html>
