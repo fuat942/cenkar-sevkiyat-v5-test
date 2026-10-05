@@ -395,7 +395,7 @@ function parseShipmentText(raw){
 function applyShipment(mode){
  const edit=mode==='edit',raw=$(edit?'e_shipmentPaste':'shipmentPaste').value.trim();
  if(!raw)return alert('Önce sevk mesajını yapıştırın.');
- const p=parseShipmentText(raw),pre=edit?'e_';
+ const p=parseShipmentText(raw),pre=edit?'e_':'';
  const fields=['tractor','trailer','driver','soforTel','city','district','freight','vat'];
  let found=0;
  for(const k of fields){
