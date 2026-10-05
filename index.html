@@ -241,27 +241,14 @@ function show(section,btn){
 }
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.section,b));
 
-// Metin alanlarında Türkçe büyük harf.
-// Boşlukları korur; boşluk tuşuna basınca karakter silinmez.
-document.addEventListener('input',e=>{
- const el=e.target;
- if(!(el instanceof HTMLInputElement||el instanceof HTMLTextAreaElement))return;
- const type=(el.type||'').toLowerCase();
- if(!(el.tagName==='TEXTAREA'||type==='text'||type==='search'))return;
- const startPos=el.selectionStart ?? el.value.length;
- const endPos=el.selectionEnd ?? el.value.length;
- const value=el.value;
- const upper=value.toLocaleUpperCase('tr-TR');
- if(value!==upper){
-   el.value=upper;
-   try{el.setSelectionRange(startPos,endPos)}catch(_){}
- }
-});
+// Metin alanları: boşluk tuşuna ve iOS seçim imlecine müdahale etmiyoruz.
+// Büyük harf CSS ile görünür, kayıt sırasında da normalize edilir.
 
 function parseFlexibleNumber(v){const s=String(v??'').trim().replace(/\s/g,'');if(!s)return 0;if(s.includes(','))return Number(s.replace(/\./g,'').replace(',','.'))||0;if(/^\d+\.\d{3}$/.test(s))return Number(s.replace(/\./g,''))||0;return Number(s)||0}
+function upperTR(v){return String(v??'').toLocaleUpperCase('tr-TR')}
 function save(){
- const customer=$('customer').value.trim();if(!customer)return alert('Müşteri adını girin.');
- const item={id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,city:$('city').value.trim(),district:$('district').value.trim(),sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,thickness:$('thickness').value,date:$('date').value,tractor:$('tractor').value.trim(),trailer:$('trailer').value.trim(),driver:$('driver').value.trim(),soforTel:$('soforTel').value.trim(),freight:parseFlexibleNumber($('freight').value),freightPayment:$('freightPayment').value,vat:$('vat').value,note:$('note').value.trim(),completed:false,updatedAt:Date.now()};
+ const customer=upperTR($('customer').value).trim();if(!customer)return alert('Müşteri adını girin.');
+ const item={id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,city:upperTR($('city').value).trim(),district:upperTR($('district').value).trim(),sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,thickness:$('thickness').value,date:$('date').value,tractor:upperTR($('tractor').value).trim(),trailer:upperTR($('trailer').value).trim(),driver:upperTR($('driver').value).trim(),soforTel:$('soforTel').value.trim(),freight:parseFlexibleNumber($('freight').value),freightPayment:$('freightPayment').value,vat:$('vat').value,note:upperTR($('note').value).trim(),completed:false,updatedAt:Date.now()};
  data.unshift(item);saveLocal();cloudUpsert(item);alert('Sipariş kaydedildi.');resetForm();
 }
 function resetForm(){
@@ -325,8 +312,8 @@ function openEdit(id){
 function closeEdit(){$('editModal').classList.remove('show');editingId=null}
 function saveEdit(){
  const x=data.find(a=>a.id===editingId);if(!x)return;
- const customer=$('e_customer').value.trim();if(!customer)return alert('Müşteri adını girin.');
- Object.assign(x,{customer,phone:$('e_phone').value.trim(),product:$('e_product').value,city:$('e_city').value.trim(),district:$('e_district').value.trim(),sqm:Number($('e_sqm').value)||0,density:$('e_density').value,foil:$('e_foil').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:$('e_tractor').value.trim(),trailer:$('e_trailer').value.trim(),driver:$('e_driver').value.trim(),soforTel:$('e_soforTel').value.trim(),freight:parseFlexibleNumber($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:$('e_note').value.trim(),updatedAt:Date.now()});
+ const customer=upperTR($('e_customer').value).trim();if(!customer)return alert('Müşteri adını girin.');
+ Object.assign(x,{customer,phone:$('e_phone').value.trim(),product:$('e_product').value,city:upperTR($('e_city').value).trim(),district:upperTR($('e_district').value).trim(),sqm:Number($('e_sqm').value)||0,density:$('e_density').value,foil:$('e_foil').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:upperTR($('e_tractor').value).trim(),trailer:upperTR($('e_trailer').value).trim(),driver:upperTR($('e_driver').value).trim(),soforTel:$('e_soforTel').value.trim(),freight:parseFlexibleNumber($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:upperTR($('e_note').value).trim(),updatedAt:Date.now()});
  saveLocal();cloudUpsert(x);closeEdit();populateCities();renderActive();renderCompleted();
 }
 
@@ -353,26 +340,73 @@ function applyOrder(){
 }
 
 function parseShipmentText(raw){
- const t=raw.replace(/\r/g,' ').replace(/\n/g,' ');let p={};
- let m=t.match(/(?:ÇEKİCİ|CEKICI)\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);if(m)p.tractor=m[1].replace(/\s+/g,' ').toUpperCase();
- m=t.match(/DORSE\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);if(m)p.trailer=m[1].replace(/\s+/g,' ').toUpperCase();
- if(!p.tractor||!p.trailer){m=t.match(/([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})\s*\/\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);if(m){p.tractor=p.tractor||m[1].replace(/\s+/g,' ').toUpperCase();p.trailer=p.trailer||m[2].replace(/\s+/g,' ').toUpperCase()}}
- m=t.match(/(?:TC|ŞOFÖR TEL|SOFOR TEL|TLF|TEL|TELEFON)\s*[:\-]?\s*(0?5\d{9})/i);if(m)p.soforTel=m[1];
- m=t.match(/(?:ŞOFÖR|SOFOR)\s*[:\-]?\s*([A-Za-zÇĞİÖŞÜçğıöşü]+(?:\s+[A-Za-zÇĞİÖŞÜçğıöşü]+){1,2})/i);if(m)p.driver=m[1].trim();
- if(!p.driver){const names=t.match(/\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]+)\s+([A-ZÇĞİÖŞÜ][a-zçğıöşü]+)\b/);if(names)p.driver=names[1]+' '+names[2]}
- m=t.match(/(?:VARIŞ|VARIS|TESLİMAT|TESLIMAT)\s*[:\-]?\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)(?=\s|$)/i);if(m){p.city=m[1];p.district=m[2]}
- if(!p.city){m=t.match(/\b(Diyarbakır|Tekirdağ|İstanbul|Ankara|İzmir|Bursa|Kocaeli|Konya|Antalya|Adana|Mersin|Kayseri|Gaziantep|Şanlıurfa|Malatya|Elazığ|Van|Erzurum|Samsun|Trabzon|Sakarya|Manisa|Denizli|Eskişehir|Balıkesir|Hatay|Muğla|Aydın|Çanakkale|Kahramanmaraş|Osmaniye|Mardin|Batman|Siirt|Bitlis|Bingöl|Şırnak|Hakkari|Ağrı|Iğdır|Kars|Ardahan|Artvin|Rize|Giresun|Ordu|Tokat|Amasya|Çorum|Sinop|Kastamonu|Karabük|Bartın|Zonguldak|Düzce|Bolu|Bilecik|Kütahya|Uşak|Afyonkarahisar|Isparta|Burdur|Kırklareli|Edirne|Yalova|Çankırı|Kırıkkale|Nevşehir|Niğde|Aksaray|Karaman|Kırşehir|Yozgat|Sivas|Tunceli|Adıyaman|Kilis|Muş)\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i);if(m){p.city=m[1];p.district=m[2]}}
- m=t.match(/(\d[\d.,]*)\s*(bin\s*)?TL/i);if(m){let n=Number(m[1].replace(/\./g,'').replace(',','.'));p.freight=m[2]?n*1000:n}
- if(/KDV\s*(?:YOK|0|SIFIR)/i.test(t))p.vat='Yok';else if(/KDV\s*(?:VAR|DAHİL|DAHIL)/i.test(t))p.vat='Var';
+ const t=raw.replace(/\r/g,' ').replace(/\n/g,' ').replace(/\s+/g,' ').trim();
+ let p={};
+
+ // Plakalar: "ÇEKİCİ 16 BOJ 726 DORSE 16 AGG 200" veya "11 DT 432/11 ABV 460"
+ let m=t.match(/(?:ÇEKİCİ|CEKICI)\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
+ if(m)p.tractor=upperTR(m[1]).replace(/\s+/g,' ').trim();
+ m=t.match(/DORSE\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
+ if(m)p.trailer=upperTR(m[1]).replace(/\s+/g,' ').trim();
+ if(!p.tractor||!p.trailer){
+   m=t.match(/([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})\s*\/\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
+   if(m){p.tractor=p.tractor||upperTR(m[1]).replace(/\s+/g,' ');p.trailer=p.trailer||upperTR(m[2]).replace(/\s+/g,' ');}
+ }
+
+ // Telefon: TLF/TELEFON/ŞOFÖR TEL; TC numarasını telefon olarak alma.
+ m=t.match(/(?:ŞOFÖR\s*TEL|SOFOR\s*TEL|TLF|TELEFON|CEP)\s*[:\-]?\s*(0?5\s*\d{3}\s*\d{3}\s*\d{2}\s*\d{2}|0?5\d{9})/i);
+ if(m)p.soforTel=m[1].replace(/\s/g,'');
+ if(!p.soforTel){
+   const phones=t.match(/0?5\d{9}/g);
+   if(phones)p.soforTel=phones[phones.length-1];
+ }
+
+ // Şoför adı: etiketli biçimler
+ m=t.match(/(?:ŞOFÖR|SOFOR)\s*[:\-]?\s*([A-Za-zÇĞİÖŞÜçğıöşü]+(?:\s+[A-Za-zÇĞİÖŞÜçğıöşü]+){1,3})(?=\s+(?:TC|TLF|TEL|TELEFON|0?5\d|DİYARBAKIR|DIYARBAKIR|İSTANBUL|ISTANBUL|ANKARA|İZMİR|IZMIR)\b|$)/i);
+ if(m)p.driver=upperTR(m[1]).trim();
+
+ // "TC:... 0532..." sonrasında gelen adlarda sık görülen "Mustafa Çakır" biçimi
+ if(!p.driver){
+   const candidates=t.match(/\b([A-Za-zÇĞİÖŞÜçğıöşü]{2,25}\s+[A-Za-zÇĞİÖŞÜçğıöşü]{2,25})\b/g)||[];
+   const bad=/^(CENKAR|FABRİKA|FABRIKA|DİYARBAKIR|DIYARBAKIR|TEKİRDAĞ|TEKIRDAG|KDV|ÖDEME|ODEME|TENTELİ|TENTELI)$/i;
+   for(const c of candidates){
+     const parts=c.trim().split(/\s+/);
+     if(parts.length===2&&!bad.test(parts[0])&&!bad.test(parts[1])&&!/\d/.test(c)){p.driver=upperTR(c);break}
+   }
+ }
+
+ // Varış: açık etiket veya şehir/ilçe çifti.
+ m=t.match(/(?:VARIŞ|VARIS|TESLİMAT|TESLIMAT)\s*[:\-]?\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i);
+ if(m){p.city=upperTR(m[1]);p.district=upperTR(m[2]);}
+ if(!p.city){
+   m=t.match(/\b(Diyarbakır|Tekirdağ|İstanbul|Ankara|İzmir|Bursa|Kocaeli|Konya|Antalya|Adana|Mersin|Kayseri|Gaziantep|Şanlıurfa|Malatya|Elazığ|Van|Erzurum|Samsun|Trabzon|Sakarya|Manisa|Denizli|Eskişehir|Balıkesir|Hatay|Muğla|Aydın|Çanakkale|Kahramanmaraş|Osmaniye|Mardin|Batman|Siirt|Bitlis|Bingöl|Şırnak|Hakkari|Ağrı|Iğdır|Kars|Ardahan|Artvin|Rize|Giresun|Ordu|Tokat|Amasya|Çorum|Sinop|Kastamonu|Karabük|Bartın|Zonguldak|Düzce|Bolu|Bilecik|Kütahya|Uşak|Afyonkarahisar|Isparta|Burdur|Kırklareli|Edirne|Yalova|Çankırı|Kırıkkale|Nevşehir|Niğde|Aksaray|Karaman|Kırşehir|Yozgat|Sivas|Tunceli|Adıyaman|Kilis|Muş)\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i);
+   if(m){p.city=upperTR(m[1]);p.district=upperTR(m[2]);}
+ }
+
+ // Freight: 47.bin / 47 bin / 47000 TL
+ m=t.match(/(\d+(?:[\.,]\d+)?)\s*(?:bin|BİN)?\s*TL/i);
+ if(m){let n=Number(m[1].replace(/\./g,'').replace(',','.'));p.freight=/bin/i.test(m[0])?n*1000:n;}
+
+ if(/KDV\s*(?:YOK|0|SIFIR)/i.test(t))p.vat='Yok';
+ else if(/KDV\s*(?:VAR|DAHİL|DAHIL)/i.test(t))p.vat='Var';
+
  return p;
 }
 function applyShipment(mode){
- const edit=mode==='edit',raw=$(edit?'e_shipmentPaste':'shipmentPaste').value.trim();if(!raw)return alert('Önce sevk mesajını yapıştırın.');
- const p=parseShipmentText(raw),pre=edit?'e_':'';
- for(const k of ['tractor','trailer','driver','soforTel','city','district','freight','vat'])if(p[k]!==undefined&&$(pre+k))$(pre+k).value=p[k];
+ const edit=mode==='edit',raw=$(edit?'e_shipmentPaste':'shipmentPaste').value.trim();
+ if(!raw)return alert('Önce sevk mesajını yapıştırın.');
+ const p=parseShipmentText(raw),pre=edit?'e_';
+ const fields=['tractor','trailer','driver','soforTel','city','district','freight','vat'];
+ let found=0;
+ for(const k of fields){
+   if(p[k]!==undefined&&$(pre+k)){
+     $(pre+k).value=String(p[k]);
+     found++;
+   }
+ }
+ if(!found)return alert('Sevk mesajından şoför/plaka bilgisi bulunamadı.');
  alert('Bulunan sevk bilgileri forma aktarıldı. Kaydetmeden önce kontrol edin.');
 }
-
 function shareOrder(id){
  const x=data.find(o=>String(o.id)===String(id));if(!x)return;
  const lines=['CENKAR SEVKİYAT','',`MÜŞTERİ: ${x.customer||'-'}`,`ÜRÜN ÇEŞİDİ: ${x.product||'-'}`,`YOĞUNLUK: ${x.density||'-'} DNS`];
