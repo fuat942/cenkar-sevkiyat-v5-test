@@ -61,9 +61,9 @@ input[type=text],textarea{text-transform:uppercase}
 <header>
 <h1>🚚 Cenkar Sevkiyat</h1>
 <div class="tabs">
-<button type="button" class="tab active" data-section="new" onclick="showSection('new',this)">➕ Yeni Sipariş</button>
-<button type="button" class="tab" data-section="list" onclick="showSection('list',this)">📋 Siparişler</button>
-<button type="button" class="tab" data-section="completed" onclick="showSection('completed',this)">✅ Tamamlananlar</button>
+<button type="button" class="tab active" data-section="new" onclick="return showSection('new',this)">➕ Yeni Sipariş</button>
+<button type="button" class="tab" data-section="list" onclick="return showSection('list',this)">📋 Siparişler</button>
+<button type="button" class="tab" data-section="completed" onclick="return showSection('completed',this)">✅ Tamamlananlar</button>
 </div>
 </header>
 
@@ -233,18 +233,28 @@ function editProductChanged(){
  $('e_foilBox').classList.toggle('hidden',!isY);$('e_thicknessBox').classList.toggle('hidden',!isM);
  const old=$('e_density').value;setDensity($('e_density'),p,old);if(isM)setThickness($('e_thickness'));
 }
-function show(section,btn){
- const target=$(section);
- if(!target)return;
- document.querySelectorAll('main>section').forEach(s=>s.classList.add('hidden'));
+function showSection(section,btn){
+ const target=document.getElementById(section);
+ if(!target)return false;
+ document.querySelectorAll('main > section').forEach(function(s){
+   s.classList.add('hidden');
+ });
  target.classList.remove('hidden');
- document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+ document.querySelectorAll('.tab').forEach(function(b){
+   b.classList.remove('active');
+ });
  if(btn)btn.classList.add('active');
- if(section==='list'){populateCities();renderActive()}
- if(section==='completed'){populateCities();renderCompleted()}
+ if(section==='list'){
+   populateCities();
+   renderActive();
+ }
+ if(section==='completed'){
+   populateCities();
+   renderCompleted();
+ }
+ return false;
 }
-window.showSection=show;
-document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',function(e){e.preventDefault();show(this.dataset.section,this);}));
+window.showSection=showSection;
 
 // Metin alanları: boşluk tuşuna ve iOS seçim imlecine müdahale etmiyoruz.
 // Büyük harf CSS ile görünür, kayıt sırasında da normalize edilir.
@@ -252,9 +262,30 @@ document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',function
 function parseFlexibleNumber(v){const s=String(v??'').trim().replace(/\s/g,'');if(!s)return 0;if(s.includes(','))return Number(s.replace(/\./g,'').replace(',','.'))||0;if(/^\d+\.\d{3}$/.test(s))return Number(s.replace(/\./g,''))||0;return Number(s)||0}
 function upperTR(v){return String(v??'').toLocaleUpperCase('tr-TR')}
 function save(){
- const customer=upperTR($('customer').value).trim();if(!customer)return alert('Müşteri adını girin.');
- const item={id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,city:upperTR($('city').value).trim(),district:upperTR($('district').value).trim(),sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,thickness:$('thickness').value,date:$('date').value,tractor:upperTR($('tractor').value).trim(),trailer:upperTR($('trailer').value).trim(),driver:upperTR($('driver').value).trim(),soforTel:$('soforTel').value.trim(),freight:parseFlexibleNumber($('freight').value),freightPayment:$('freightPayment').value,vat:$('vat').value,note:upperTR($('note').value).trim(),completed:false,updatedAt:Date.now()};
- data.unshift(item);saveLocal();cloudUpsert(item);resetForm();populateCities();renderActive();renderCompleted();show('list',document.querySelector('.tab[data-section="list"]'));alert('Sipariş kaydedildi ve Siparişler bölümüne aktarıldı.');
+ const customer=upperTR($('customer').value).trim();
+ if(!customer){alert('Müşteri adını girin.');return;}
+ const item={
+  id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,
+  city:upperTR($('city').value).trim(),district:upperTR($('district').value).trim(),
+  sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,
+  thickness:$('thickness').value,date:$('date').value,
+  tractor:upperTR($('tractor').value).trim(),trailer:upperTR($('trailer').value).trim(),
+  driver:upperTR($('driver').value).trim(),soforTel:$('soforTel').value.trim(),
+  freight:parseFlexibleNumber($('freight').value),freightPayment:$('freightPayment').value,
+  vat:$('vat').value,note:upperTR($('note').value).trim(),
+  completed:false,updatedAt:Date.now()
+ };
+ data=Array.isArray(data)?data:[];
+ data.unshift(item);
+ saveLocal();
+ populateCities();
+ renderActive();
+ renderCompleted();
+ const listBtn=document.querySelector('.tab[data-section="list"]');
+ show('list',listBtn);
+ resetForm();
+ try{cloudUpsert(item).catch(e=>console.warn('Bulut kayıt hatası:',e));}catch(e){}
+ alert('Sipariş kaydedildi. Siparişler bölümünde görüntüleniyor.');
 }
 function resetForm(){
  document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');
@@ -498,7 +529,7 @@ async function initCloud(){
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudUser&&sb)cloudRefresh()});
 window.addEventListener('focus',()=>{if(cloudUser&&sb)cloudRefresh()});
 
-$('product').onchange=productChanged;$('saveBtn').onclick=save;$('parseOrderBtn').onclick=()=>applyOrder();$('parseShipmentBtn').onclick=()=>applyShipment('new');
+$('product').onchange=productChanged;$('saveBtn').onclick=function(e){e.preventDefault();save();};$('parseOrderBtn').onclick=()=>applyOrder();$('parseShipmentBtn').onclick=()=>applyShipment('new');
 $('search').oninput=renderActive;$('fcity').onchange=renderActive;$('fproduct').onchange=renderActive;$('doneSearch').oninput=renderCompleted;$('doneCity').onchange=renderCompleted;$('doneProduct').onchange=renderCompleted;
 $('exportBtn').onclick=exportCompleted;$('closeEdit').onclick=closeEdit;$('cancelEdit').onclick=closeEdit;$('saveEdit').onclick=saveEdit;$('editParseShipment').onclick=()=>applyShipment('edit');
 $('e_product').onchange=editProductChanged;
@@ -512,17 +543,9 @@ $('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signO
 setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));productChanged();
 setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));editProductChanged();
 initCloud();
-// Eski GitHub Pages Service Worker önbelleğini bir kez temizle; eski JS sekmeleri kilitlemesin.
+// Service worker kaydı mevcut sürümle uyumlu bırakıldı.
 if('serviceWorker' in navigator){
-  const SW_RESET='cenkar_sw_reset_20261005_v2';
-  if(!sessionStorage.getItem(SW_RESET)){
-    navigator.serviceWorker.getRegistrations().then(regs=>{
-      sessionStorage.setItem(SW_RESET,'1');
-      return Promise.all(regs.map(r=>r.unregister()));
-    }).then(()=>location.reload()).catch(()=>{sessionStorage.setItem(SW_RESET,'1');});
-  }else{
-    navigator.serviceWorker.register('./service-worker.js?v=20261005v2',{updateViaCache:'none'}).catch(()=>{});
-  }
+  navigator.serviceWorker.register('./service-worker.js').catch(function(){});
 }
 </script>
 </body>
