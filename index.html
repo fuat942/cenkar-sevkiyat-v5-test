@@ -95,7 +95,7 @@ if ('serviceWorker' in navigator) {
 <div class="full"><label>Müşteri</label><input id="customer" placeholder="Müşteri adı"></div>
 
 <div><label>Ürün çeşidi</label><select id="product">
-<option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option>
+<option>Yerden Isıtma</option><option>Mantolama</option>
 </select></div>
 <div id="densityBox"><label>Yoğunluk (DNS)</label><select id="density"></select></div>
 
@@ -106,6 +106,9 @@ if ('serviceWorker' in navigator) {
 
 <div><label>Miktar (m²)</label><input id="sqm" type="number" inputmode="decimal" placeholder="Örn. 1000"></div>
 <div id="foilBox"><label>Yerden Isıtma</label><select id="foil"><option>Folyolu</option><option>Folyosuz</option></select></div>
+<div id="packageBox"><label>Paket Sayısı</label><input id="packageCount" type="number" inputmode="numeric" min="0" placeholder="Paket adedi"></div>
+<div id="epsTypeBox" class="hidden"><label>Mantolama Tipi</label><select id="epsType"><option>Beyaz EPS</option><option>Karbonlu</option></select></div>
+<div id="teamSystemBox" class="hidden"><label>Takım Sistem</label><select id="teamSystem"><option>Evet</option><option>Hayır</option></select></div>
 <div id="thicknessBox"><label>Kalınlık (cm)</label><select id="thickness"></select></div>
 
 <div><label>Sevkiyat tarihi</label><input id="date" type="date"></div>
@@ -143,7 +146,7 @@ if ('serviceWorker' in navigator) {
 <div class="card"><div class="filters">
 <input id="search" placeholder="🔎 Müşteri, plaka veya şoför ara">
 <select id="fcity"><option value="">Tüm iller</option></select>
-<select id="fproduct"><option value="">Tüm ürünler</option><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select>
+<select id="fproduct"><option value="">Tüm ürünler</option><option>Yerden Isıtma</option><option>Mantolama</option></select>
 </div></div>
 <div id="orders"></div>
 </section>
@@ -157,10 +160,14 @@ if ('serviceWorker' in navigator) {
 <div class="card"><div class="filters">
 <input id="doneSearch" placeholder="🔎 Tamamlananlarda ara">
 <select id="doneCity"><option value="">Tüm iller</option></select>
-<select id="doneProduct"><option value="">Tüm ürünler</option><option>Yerden Isıtma</option><option>Mantolama</option><option>HIPS</option><option>PP</option><option>Diğer</option></select>
+<select id="doneProduct"><option value="">Tüm ürünler</option><option>Yerden Isıtma</option><option>Mantolama</option></select>
 </div>
-<label>Başlangıç</label><input id="exportFrom" type="date">
-<label>Bitiş</label><input id="exportTo" type="date">
+<label>EKRANDA TARİH FİLTRESİ — BAŞLANGIÇ</label><input id="doneFrom" type="date">
+<label>EKRANDA TARİH FİLTRESİ — BİTİŞ</label><input id="doneTo" type="date">
+<button class="secondary" id="doneClearDates" type="button">🔄 Tarih Filtresini Temizle</button>
+<hr style="border:0;border-top:1px solid #e5e7eb;margin:14px 0">
+<label>EXCEL DIŞA AKTARMA — BAŞLANGIÇ</label><input id="exportFrom" type="date">
+<label>EXCEL DIŞA AKTARMA — BİTİŞ</label><input id="exportTo" type="date">
 <button class="primary" id="exportBtn">📤 Dışa Aktar</button>
 </div>
 <div id="completedOrders"></div>
@@ -181,6 +188,9 @@ if ('serviceWorker' in navigator) {
 <div class="full"><label>İrtibat Telefonu</label><input id="e_phone" type="tel"></div>
 <div><label>Miktar (m²)</label><input id="e_sqm" type="number"></div>
 <div id="e_foilBox"><label>Yerden Isıtma</label><select id="e_foil"><option>Folyolu</option><option>Folyosuz</option></select></div>
+<div id="e_packageBox"><label>Paket Sayısı</label><input id="e_packageCount" type="number" inputmode="numeric" min="0"></div>
+<div id="e_epsTypeBox" class="hidden"><label>Mantolama Tipi</label><select id="e_epsType"><option>Beyaz EPS</option><option>Karbonlu</option></select></div>
+<div id="e_teamSystemBox" class="hidden"><label>Takım Sistem</label><select id="e_teamSystem"><option>Evet</option><option>Hayır</option></select></div>
 <div id="e_thicknessBox"><label>Kalınlık (cm)</label><select id="e_thickness"></select></div>
 <div><label>Sevkiyat tarihi</label><input id="e_date" type="date"></div>
 <div><label>Çekici plakası</label><input id="e_tractor"></div>
@@ -243,13 +253,23 @@ function setDensity(select,product,old){
 function setThickness(select){select.innerHTML='';for(let i=1;i<=15;i++)select.add(new Option(i,i))}
 function productChanged(){
  const p=$('product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';
- $('foilBox').classList.toggle('hidden',!isY);$('thicknessBox').classList.toggle('hidden',!isM);
- setDensity($('density'),p,$('density').value);if(isM)setThickness($('thickness'));
+ $('foilBox').classList.toggle('hidden',!isY);
+ $('packageBox').classList.toggle('hidden',!isY);
+ $('epsTypeBox').classList.toggle('hidden',!isM);
+ $('teamSystemBox').classList.toggle('hidden',!isM);
+ $('thicknessBox').classList.toggle('hidden',!isM);
+ setDensity($('density'),p,$('density').value);
+ if(isM)setThickness($('thickness'));
 }
 function editProductChanged(){
  const p=$('e_product').value,isY=p==='Yerden Isıtma',isM=p==='Mantolama';
- $('e_foilBox').classList.toggle('hidden',!isY);$('e_thicknessBox').classList.toggle('hidden',!isM);
- const old=$('e_density').value;setDensity($('e_density'),p,old);if(isM)setThickness($('e_thickness'));
+ $('e_foilBox').classList.toggle('hidden',!isY);
+ $('e_packageBox').classList.toggle('hidden',!isY);
+ $('e_epsTypeBox').classList.toggle('hidden',!isM);
+ $('e_teamSystemBox').classList.toggle('hidden',!isM);
+ $('e_thicknessBox').classList.toggle('hidden',!isM);
+ const old=$('e_density').value;setDensity($('e_density'),p,old);
+ if(isM)setThickness($('e_thickness'));
 }
 function showSection(section,btn){
  const target=document.getElementById(section);
@@ -286,7 +306,7 @@ function save(){
   const item={
    id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,
    city:upperTR($('city').value).trim(),district:upperTR($('district').value).trim(),
-   sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,
+   sqm:Number($('sqm').value)||0,density:$('density').value,foil:$('foil').value,packageCount:Number($('packageCount').value)||0,epsType:$('epsType').value,teamSystem:$('teamSystem').value,
    thickness:$('thickness').value,date:$('date').value,
    tractor:upperTR($('tractor').value).trim(),trailer:upperTR($('trailer').value).trim(),
    driver:upperTR($('driver').value).trim(),soforTel:$('soforTel').value.trim(),
@@ -304,7 +324,7 @@ function save(){
 }
 function resetForm(){
  document.querySelectorAll('#new input,#new textarea').forEach(x=>x.value='');
- $('product').value='Yerden Isıtma';$('freightPayment').value='Bize ait';$('vat').value='Yok';productChanged();
+ $('product').value='Yerden Isıtma';$('packageCount').value='';$('epsType').value='Beyaz EPS';$('teamSystem').value='Evet';$('freightPayment').value='Bize ait';$('vat').value='Yok';productChanged();
 }
 function matches(x,q,city,prod){
  const text=[x.customer,x.phone,x.tractor,x.trailer,x.driver,x.city,x.district].join(' ').toLowerCase();
@@ -316,11 +336,11 @@ function populateCities(){
  $('fcity').innerHTML=opts;$('doneCity').innerHTML=opts;
 }
 function orderHTML(x){
- const product=x.product==='Yerden Isıtma'?`${esc(x.product)} · ${esc(x.foil)} · ${esc(x.density)} DNS`:x.product==='Mantolama'?`${esc(x.product)} · ${esc(x.thickness)} cm · ${esc(x.density)} DNS`:esc(x.product);
+ const product=x.product==='Yerden Isıtma'?`${esc(x.product)} · ${esc(x.foil)} · ${esc(x.density)} DNS${Number(x.packageCount||0)?' · 📦 '+esc(x.packageCount)+' Paket':''}`:x.product==='Mantolama'?`${esc(x.product)} · ${esc(x.epsType||'Beyaz EPS')} · Takım Sistem: ${esc(x.teamSystem||'Hayır')} · ${esc(x.thickness)} cm · ${esc(x.density)} DNS`:esc(x.product);
  return `<div class="order"><div class="order-top"><b>${esc(x.customer)}</b>${x.completed?'<span class="badge">Tamamlandı</span>':''}</div>
  <div class="meta"><b>${product}</b> · ${esc(x.city)||'-'} / ${esc(x.district)||'-'} · <b>${Number(x.sqm||0).toLocaleString('tr-TR')} m²</b><br>
  📅 ${esc(x.date)||'-'} · 🚛 ${esc(x.tractor)||'-'} / ${esc(x.trailer)||'-'} · 👤 ${esc(x.driver)||'-'}<br>
- 📞 ${esc(x.phone)||'-'} · ☎️ ${esc(x.soforTel)||'-'}<br>
+ 📞 <a href="tel:${String(x.phone||'').replace(/[^0-9+]/g,'')}">${esc(x.phone)||'-'}</a> · ☎️ <a href="tel:${String(x.soforTel||'').replace(/[^0-9+]/g,'')}">${esc(x.soforTel)||'-'}</a><br>
  💰 Nakliye: ${x.freight?Number(x.freight).toLocaleString('tr-TR')+' TL':'-'} · Ödeme: ${esc(x.freightPayment||'Bize ait')} · KDV: ${esc(x.vat)||'-'}</div>
  <div class="actions"><button onclick="shareOrder(${x.id})">📤 Paylaş</button><button onclick="openEdit(${x.id})">✏️ Düzenle</button>
  ${!x.completed?`<button onclick="completeOrder(${x.id})">✅ Tamamlandı</button>`:''}
@@ -333,9 +353,17 @@ function renderActive(){
  $('orders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Aktif sipariş bulunamadı.</div>';
 }
 function renderCompleted(){
- const all=data.filter(x=>x.completed),q=$('doneSearch').value.toLowerCase(),arr=all.filter(x=>matches(x,q,$('doneCity').value,$('doneProduct').value));
- $('doneCount').textContent=all.length;$('doneTotal').textContent=all.reduce((a,x)=>a+Number(x.sqm||0),0).toLocaleString('tr-TR');$('doneForms').textContent='—';
- $('completedOrders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Tamamlanan sipariş bulunamadı.</div>';
+ const all=data.filter(x=>x.completed);
+ const q=$('doneSearch').value.toLowerCase(),from=$('doneFrom').value,to=$('doneTo').value;
+ const arr=all.filter(x=>{
+   const match=matches(x,q,$('doneCity').value,$('doneProduct').value);
+   const d=x.date||'';
+   return match&&(!from||d>=from)&&(!to||d<=to);
+ });
+ $('doneCount').textContent=arr.length;
+ $('doneTotal').textContent=arr.reduce((a,x)=>a+Number(x.sqm||0),0).toLocaleString('tr-TR');
+ $('doneForms').textContent='—';
+ $('completedOrders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Seçilen tarih aralığında tamamlanan sipariş bulunamadı.</div>';
 }
 function todayLocal(){
  const d=new Date();
@@ -358,13 +386,13 @@ function delOrder(id){if(confirm('Bu sipariş silinsin mi?')){data=data.filter(x
 function openEdit(id){
  const x=data.find(a=>a.id===id);if(!x)return;editingId=id;
  ['customer','phone','city','district','sqm','date','tractor','trailer','driver','soforTel','freight','note'].forEach(k=>{if($('e_'+k))$('e_'+k).value=x[k]??''});
- $('e_product').value=x.product||'Yerden Isıtma';editProductChanged();$('e_density').value=x.density||$('e_density').value;$('e_foil').value=x.foil||'Folyolu';if(x.thickness)$('e_thickness').value=x.thickness;$('e_freightPayment').value=x.freightPayment||'Bize ait';$('e_vat').value=x.vat||'Yok';$('e_shipmentPaste').value='';$('editModal').classList.add('show');
+ $('e_product').value=x.product||'Yerden Isıtma';editProductChanged();$('e_density').value=x.density||$('e_density').value;$('e_foil').value=x.foil||'Folyolu';$('e_packageCount').value=x.packageCount??'';$('e_epsType').value=x.epsType||'Beyaz EPS';$('e_teamSystem').value=x.teamSystem||'Hayır';if(x.thickness)$('e_thickness').value=x.thickness;$('e_freightPayment').value=x.freightPayment||'Bize ait';$('e_vat').value=x.vat||'Yok';$('e_shipmentPaste').value='';$('editModal').classList.add('show');
 }
 function closeEdit(){$('editModal').classList.remove('show');editingId=null}
 function saveEdit(){
  const x=data.find(a=>a.id===editingId);if(!x)return;
  const customer=upperTR($('e_customer').value).trim();if(!customer)return alert('Müşteri adını girin.');
- Object.assign(x,{customer,phone:$('e_phone').value.trim(),product:$('e_product').value,city:upperTR($('e_city').value).trim(),district:upperTR($('e_district').value).trim(),sqm:Number($('e_sqm').value)||0,density:$('e_density').value,foil:$('e_foil').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:upperTR($('e_tractor').value).trim(),trailer:upperTR($('e_trailer').value).trim(),driver:upperTR($('e_driver').value).trim(),soforTel:$('e_soforTel').value.trim(),freight:parseFlexibleNumber($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:upperTR($('e_note').value).trim(),updatedAt:Date.now()});
+ Object.assign(x,{customer,phone:$('e_phone').value.trim(),product:$('e_product').value,city:upperTR($('e_city').value).trim(),district:upperTR($('e_district').value).trim(),sqm:Number($('e_sqm').value)||0,density:$('e_density').value,foil:$('e_foil').value,packageCount:Number($('e_packageCount').value)||0,epsType:$('e_epsType').value,teamSystem:$('e_teamSystem').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:upperTR($('e_tractor').value).trim(),trailer:upperTR($('e_trailer').value).trim(),driver:upperTR($('e_driver').value).trim(),soforTel:$('e_soforTel').value.trim(),freight:parseFlexibleNumber($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:upperTR($('e_note').value).trim(),updatedAt:Date.now()});
  saveLocal();cloudUpsert(x);closeEdit();populateCities();renderActive();renderCompleted();
 }
 
@@ -374,7 +402,7 @@ function parseOrderText(raw){
  m=t.match(/(?:TEL|TLF|TELEFON|CEP)\s*[:\-]?\s*(0?5\d{9})/i);if(m)p.phone=m[1];
  m=t.match(/(?:MİKTAR|MIKTAR|M2|M²|METREKARE)\s*[:\-]?\s*([\d.,]+)/i);if(m)p.sqm=m[1].replace(/\./g,'').replace(',','.');
  m=t.match(/(?:ÜRÜN|URUN|ÜRÜN ÇEŞİDİ|URUN CESIDI)\s*[:\-]?\s*([^\n]+)/i);if(m)p.product=normalizeProduct(m[1]);
- if(!p.product){if(/mantolama/i.test(t))p.product='Mantolama';else if(/yerden\s*ısıtma|yerden\s*isitma/i.test(t))p.product='Yerden Isıtma';else if(/\bHIPS\b/i.test(t))p.product='HIPS';else if(/\bPP\b/i.test(t))p.product='PP'}
+ if(!p.product){if(/mantolama/i.test(t))p.product='Mantolama';else if(/yerden\s*ısıtma|yerden\s*isitma/i.test(t))p.product='Yerden Isıtma';}
  m=t.match(/(?:İLÇE|ILCE)\s*[:\-]?\s*([^\n/]+)/i);if(m)p.district=m[1].trim();
  m=t.match(/(?:İL|IL|ŞEHİR|SEHIR)\s*[:\-]?\s*([^\n/]+)/i);if(m)p.city=m[1].trim();
  m=t.match(/\b(22|24|26|28|30|32|34|36|38|40)\s*DNS\b/i);if(m)p.density=m[1];
@@ -383,7 +411,7 @@ function parseOrderText(raw){
  if(!p.customer){for(const line of t.split('\n').map(s=>s.trim()).filter(Boolean)){if(/\d{5,}|^(TEL|TLF|MİKTAR|ÜRÜN|İL|İLÇE)\b/i.test(line))continue;if(/^[A-Za-zÇĞİÖŞÜçğıöşü .&'-]{3,60}$/.test(line)){p.customer=line;break}}}
  return p;
 }
-function normalizeProduct(s){if(/yerden\s*ısıtma|yerden\s*isitma/i.test(s))return'Yerden Isıtma';if(/mantolama/i.test(s))return'Mantolama';if(/\bHIPS\b/i.test(s))return'HIPS';if(/\bPP\b/i.test(s))return'PP';if(/diğer|diger/i.test(s))return'Diğer';return''}
+function normalizeProduct(s){if(/yerden\s*ısıtma|yerden\s*isitma/i.test(s))return'Yerden Isıtma';if(/mantolama/i.test(s))return'Mantolama';return''}
 function applyOrder(){
  const p=parseOrderText($('orderPaste').value);if(!Object.keys(p).length)return alert('Sipariş bilgisi bulunamadı.');
  if(p.customer)$('customer').value=p.customer;if(p.phone)$('phone').value=p.phone;if(p.product){$('product').value=p.product;productChanged()}if(p.city)$('city').value=p.city;if(p.district)$('district').value=p.district;if(p.sqm)$('sqm').value=p.sqm;if(p.density)$('density').value=p.density;if(p.foil)$('foil').value=p.foil;if(p.thickness){productChanged();$('thickness').value=p.thickness}
@@ -461,8 +489,9 @@ function applyShipment(mode){
 function shareOrder(id){
  const x=data.find(o=>String(o.id)===String(id));if(!x)return;
  const lines=['CENKAR SEVKİYAT','',`MÜŞTERİ: ${x.customer||'-'}`,`ÜRÜN ÇEŞİDİ: ${x.product||'-'}`,`YOĞUNLUK: ${x.density||'-'} DNS`];
- if(x.product==='Yerden Isıtma')lines.push(`FOLYOLU / FOLYOSUZ: ${x.foil||'-'}`);
- lines.push(`İL / İLÇE: ${x.city||'-'} / ${x.district||'-'}`,`İRTİBAT: ${x.phone||'-'}`,'',`PLAKA - ÇEKİCİ: ${x.tractor||'-'}`,`PLAKA - DORSE: ${x.trailer||'-'}`,`ŞOFÖR: ${x.driver||'-'}`,`ŞOFÖR TEL: ${x.soforTel||'-'}`);
+ if(x.product==='Yerden Isıtma'){lines.push(`FOLYOLU / FOLYOSUZ: ${x.foil||'-'}`);if(Number(x.packageCount||0))lines.push(`PAKET: ${x.packageCount}`);}
+ if(x.product==='Mantolama')lines.push(`MANTOLAMA TİPİ: ${x.epsType||'Beyaz EPS'}`,`TAKIM SİSTEM: ${x.teamSystem||'Hayır'}`,`KALINLIK: ${x.thickness||'-'} cm`);
+ lines.push(`İL / İLÇE: ${x.city||'-'} / ${x.district||'-'}`,`İRTİBAT: ${x.phone||'-'}`,`NOT: ${x.note||'-'}`,'',`PLAKA - ÇEKİCİ: ${x.tractor||'-'}`,`PLAKA - DORSE: ${x.trailer||'-'}`,`ŞOFÖR: ${x.driver||'-'}`,`ŞOFÖR TEL: ${x.soforTel||'-'}`);
  const text=lines.join('\n');
  if(navigator.share)navigator.share({title:'CENKAR SEVKİYAT',text}).catch(()=>{});
  else navigator.clipboard?.writeText(text).then(()=>alert('Bilgiler kopyalandı.'));
@@ -561,7 +590,7 @@ async function initCloud(){
 
 
 $('product').onchange=productChanged;$('saveBtn').onclick=function(e){e.preventDefault();save();};$('parseOrderBtn').onclick=()=>applyOrder();$('parseShipmentBtn').onclick=()=>applyShipment('new');
-$('search').oninput=renderActive;$('fcity').onchange=renderActive;$('fproduct').onchange=renderActive;$('doneSearch').oninput=renderCompleted;$('doneCity').onchange=renderCompleted;$('doneProduct').onchange=renderCompleted;
+$('search').oninput=renderActive;$('fcity').onchange=renderActive;$('fproduct').onchange=renderActive;$('doneSearch').oninput=renderCompleted;$('doneCity').onchange=renderCompleted;$('doneProduct').onchange=renderCompleted;$('doneFrom').onchange=renderCompleted;$('doneTo').onchange=renderCompleted;$('doneClearDates').onclick=()=>{$('doneFrom').value='';$('doneTo').value='';renderCompleted()};
 $('exportBtn').onclick=exportCompleted;$('closeEdit').onclick=closeEdit;$('cancelEdit').onclick=closeEdit;$('saveEdit').onclick=saveEdit;$('editParseShipment').onclick=()=>applyShipment('edit');
 $('e_product').onchange=editProductChanged;
 $('cloudBtn').onclick=()=>$('cloudModal').classList.add('show');
@@ -571,8 +600,8 @@ $('cloudSignup').onclick=cloudSignup;
 $('cloudSync').onclick=async()=>{const b=$('cloudSync');if(cloudBusy)return;b.disabled=true;b.textContent='⏳ Senkronize ediliyor...';const r=await cloudRefresh();b.disabled=false;b.textContent='☁️ Şimdi Senkronize Et';if(r.ok){alert('SENKRONİZASYON TAMAMLANDI\n\nBulutta önce: '+r.before+' kayıt\nBuluta gönderilen/güncellenen: '+r.uploaded+'\nBuluttan telefona gelen: '+r.incoming+'\nTelefonda toplam: '+r.total);}else{alert('SENKRONİZASYON BAŞARISIZ\n\n'+r.message);}};
 $('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();$('cloudModal').classList.remove('show')};
 
-setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));productChanged();
-setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));editProductChanged();
+setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));$('epsType').value='Beyaz EPS';$('teamSystem').value='Evet';productChanged();
+setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));$('e_epsType').value='Beyaz EPS';$('e_teamSystem').value='Hayır';editProductChanged();
 // Bulut başlangıçta otomatik çalışmaz. Sadece manuel senkronizasyon için kullanılabilir.
 // Eski Service Worker / cache temizliği: yerel sipariş verilerine dokunmaz.
 (async()=>{try{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs){await r.unregister();}}if('caches' in window){const ks=await caches.keys();for(const k of ks){await caches.delete(k);}}}catch(e){console.warn('Eski önbellek temizlenemedi',e);}})();
@@ -580,5 +609,3 @@ setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));
 </script>
 </body>
 </html>
-
-
