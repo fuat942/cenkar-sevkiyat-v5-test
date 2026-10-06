@@ -545,42 +545,54 @@ function exportCompleted(){
  XLSX.writeFile(wb,'Cenkar_Tamamlanan_Siparisler.xlsx');
 }
 
-async function cloudUpsert(x){if(!cloudUser||!sb)return;const {error}=await sb.from('cenkar_orders').upsert({id:x.id,user_id:cloudUser.id,data:x,updated_at:new Date(x.updatedAt||Date.now()).toISOString()});if(error)console.warn(error)}
-async function cloudDelete(id){if(!cloudUser||!sb)return {ok:false,message:'Bulut hesabına giriş yapılmamış.'};const {error}=await sb.from('cenkar_orders').delete().eq('id',id);if(error){console.warn(error);return {ok:false,message:error.message||String(error)}}return {ok:true}}
+async function cloudUpsert(x){
+ if(!cloudUser||!sb)return {ok:false,message:'Bulut hesabına giriş yapılmamış.'};
+ const {error}=await sb.from('cenkar_orders').upsert({id:x.id,user_id:cloudUser.id,data:x,updated_at:new Date(x.updatedAt||Date.now()).toISOString()});
+ if(error){console.warn('Cloud upsert error',error);return {ok:false,message:error.message||JSON.stringify(error)}}
+ return {ok:true};
+}
+async function cloudDelete(id){
+ if(!cloudUser||!sb)return {ok:false,message:'Bulut hesabına giriş yapılmamış.'};
+ const {error}=await sb.from('cenkar_orders').delete().eq('id',id).eq('user_id',cloudUser.id);
+ if(error){console.warn('Cloud delete error',error);return {ok:false,message:error.message||JSON.stringify(error)}}
+ return {ok:true};
+}
 async function cloudRefresh(){
- if(!cloudUser||!sb||cloudBusy)return false;cloudBusy=true;
+ if(!cloudUser||!sb)return {ok:false,message:'Bulut hesabına giriş yapılmamış.'};
+ if(cloudBusy)return {ok:false,message:'Senkronizasyon zaten devam ediyor.'};
+ cloudBusy=true;
  try{
-  const {data:rows,error}=await sb.from('cenkar_orders').select('id,data,updated_at').eq('user_id',cloudUser.id).order('updated_at',{ascending:false});
-  if(error)throw error;
-  const remoteMap=new Map((rows||[]).map(r=>[String(r.id),r.data||{}]));
-  // First permanently apply locally recorded deletions to the cloud.
+  const {data:rows,error:readError}=await sb.from('cenkar_orders').select('id,data,updated_at').eq('user_id',cloudUser.id).order('updated_at',{ascending:false});
+  if(readError)throw new Error('Buluttan okuma hatası: '+(readError.message||JSON.stringify(readError))+(readError.hint?' | İpucu: '+readError.hint:''));
+  const before=rows||[];
+  const remoteMap=new Map(before.map(r=>{const d={...(r.data||{})};if(!d.updatedAt&&r.updated_at)d.updatedAt=Date.parse(r.updated_at)||0;return [String(r.id),d]}));
+  let uploaded=0,incoming=0,deleted=0;
   for(const id of deletedIds){
-   await sb.from('cenkar_orders').delete().eq('id',id).eq('user_id',cloudUser.id);
-   remoteMap.delete(String(id));
+   const {error}=await sb.from('cenkar_orders').delete().eq('id',id).eq('user_id',cloudUser.id);
+   if(error)throw new Error('Buluttan silme hatası: '+(error.message||JSON.stringify(error))+(error.hint?' | İpucu: '+error.hint:''));
+   if(remoteMap.delete(String(id)))deleted++;
   }
   const localMap=new Map(data.map(x=>[String(x.id),x]));
-  // Merge existing records: newest version wins.
-  for(const [id,remote] of remoteMap){
+  for(const [id,remote] of [...remoteMap]){
    if(deletedIds.includes(id))continue;
    const local=localMap.get(id);
-   if(!local){localMap.set(id,remote);continue;}
+   if(!local){localMap.set(id,remote);incoming++;continue;}
    if(Number(local.updatedAt||0)>Number(remote.updatedAt||0)){
-    await cloudUpsert(local);
-   }else if(Number(remote.updatedAt||0)>Number(local.updatedAt||0)){
-    localMap.set(id,remote);
+    const u=await cloudUpsert(local);if(!u.ok)throw new Error('Buluta kayıt gönderilemedi: '+u.message);uploaded++;remoteMap.set(id,local);
+   }else if(Number(remote.updatedAt||0)>Number(local.updatedAt||0)){localMap.set(id,remote);}
+  }
+  for(const local of localMap.values()){
+   const id=String(local.id);if(deletedIds.includes(id))continue;
+   const remote=remoteMap.get(id);
+   if(!remote||Number(local.updatedAt||0)>Number(remote.updatedAt||0)){
+    const u=await cloudUpsert(local);if(!u.ok)throw new Error('Buluta kayıt gönderilemedi: '+u.message);uploaded++;remoteMap.set(id,local);
    }
   }
-  // Upload local records that are genuinely local/new or newer than cloud.
-  for(const local of localMap.values()){
-   if(deletedIds.includes(String(local.id)))continue;
-   const remote=remoteMap.get(String(local.id));
-   if(!remote || Number(local.updatedAt||0)>Number(remote.updatedAt||0))await cloudUpsert(local);
-  }
   data=[...localMap.values()].filter(x=>!deletedIds.includes(String(x.id))).sort((a,b)=>Number(b.updatedAt||b.id)-Number(a.updatedAt||a.id));
-  saveLocal();
+  if(!saveLocal())throw new Error('Telefon verileri yerel olarak kaydedilemedi.');
   populateCities();renderActive();renderCompleted();cloudLastSync=Date.now();
-  return true;
- }catch(e){console.warn('Cloud sync error',e);return false}finally{cloudBusy=false}
+  return {ok:true,before:before.length,uploaded,incoming,deleted,total:data.length};
+ }catch(e){console.warn('Cloud sync error',e);return {ok:false,message:e&&e.message?e.message:String(e)}}finally{cloudBusy=false}
 }
 
 function startCloudAutoSync(){ stopCloudAutoSync(); }
@@ -628,7 +640,7 @@ $('cloudBtn').onclick=()=>$('cloudModal').classList.add('show');
 $('cloudClose').onclick=()=>$('cloudModal').classList.remove('show');
 $('cloudLogin').onclick=cloudLogin;
 $('cloudSignup').onclick=cloudSignup;
-$('cloudSync').onclick=async()=>{const b=$('cloudSync');if(cloudBusy)return;b.disabled=true;b.textContent='⏳ Senkronize ediliyor...';const r=await cloudRefresh();b.disabled=false;b.textContent='☁️ Şimdi Senkronize Et';if(r.ok){alert('SENKRONİZASYON TAMAMLANDI\n\nBulutta önce: '+r.before+' kayıt\nBuluta gönderilen/güncellenen: '+r.uploaded+'\nBuluttan telefona gelen: '+r.incoming+'\nTelefonda toplam: '+r.total);}else{alert('SENKRONİZASYON BAŞARISIZ\n\n'+r.message);}};
+$('cloudSync').onclick=async()=>{const b=$('cloudSync');if(cloudBusy)return;b.disabled=true;b.textContent='⏳ Senkronize ediliyor...';const r=await cloudRefresh();b.disabled=false;b.textContent='☁️ Şimdi Senkronize Et';if(r.ok){alert('SENKRONİZASYON TAMAMLANDI\n\nBulutta önce: '+r.before+' kayıt\nBuluta gönderilen/güncellenen: '+r.uploaded+'\nBuluttan telefona gelen: '+r.incoming+'\nBuluttan silinen: '+r.deleted+' kayıt\nTelefonda toplam: '+r.total);}else{alert('SENKRONİZASYON BAŞARISIZ\n\n'+(r.message||'Bilinmeyen hata'));}};
 $('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();$('cloudModal').classList.remove('show')};
 
 setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));$('epsType').value='Beyaz EPS';$('teamSystem').value='Evet';productChanged();
