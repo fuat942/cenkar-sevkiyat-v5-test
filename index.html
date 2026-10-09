@@ -99,8 +99,8 @@ if ('serviceWorker' in navigator) {
 </select></div>
 <div id="densityBox"><label>Yoğunluk (DNS)</label><select id="density"></select></div>
 
-<div><label>İl</label><input id="city" placeholder="İl"></div>
-<div><label>İlçe</label><input id="district" placeholder="İlçe"></div>
+<div><label>İl</label><input id="city" list="provinceList" placeholder="İl seçin veya yazın" autocomplete="off"></div>
+<div><label>İlçe</label><input id="district" list="districtList" placeholder="Önce il seçin" autocomplete="off"></div>
 
 <div class="full"><label>İrtibat Telefonu</label><input id="phone" type="tel" inputmode="tel" placeholder="05xx xxx xx xx"></div>
 
@@ -148,6 +148,7 @@ if ('serviceWorker' in navigator) {
 <input id="search" placeholder="🔎 Müşteri, plaka veya şoför ara">
 <select id="fcity"><option value="">Tüm iller</option></select>
 <select id="fproduct"><option value="">Tüm ürünler</option><option>Yerden Isıtma</option><option>Mantolama</option></select>
+<select id="shipmentFilter"><option value="all">Tüm sevkiyat durumları</option><option value="entered">Sevkiyat bilgisi girilenler</option><option value="missing">Sevkiyat bilgisi girilmeyenler</option></select>
 </div></div>
 <div id="orders"></div>
 </section>
@@ -179,6 +180,7 @@ if ('serviceWorker' in navigator) {
 </section>
 </main>
 
+<datalist id="provinceList"></datalist><datalist id="districtList"></datalist>
 <input id="fileInput" type="file" accept="image/*,.pdf" hidden>
 
 <div id="editModal" class="modal">
@@ -188,8 +190,8 @@ if ('serviceWorker' in navigator) {
 <div class="full"><label>Müşteri</label><input id="e_customer"></div>
 <div><label>Ürün çeşidi</label><select id="e_product"><option>Yerden Isıtma</option><option>Mantolama</option></select></div>
 <div><label>Yoğunluk (DNS)</label><select id="e_density"></select></div>
-<div><label>İl</label><input id="e_city"></div>
-<div><label>İlçe</label><input id="e_district"></div>
+<div><label>İl</label><input id="e_city" list="provinceList" autocomplete="off"></div>
+<div><label>İlçe</label><input id="e_district" list="districtList" autocomplete="off"></div>
 <div class="full"><label>İrtibat Telefonu</label><input id="e_phone" type="tel"></div>
 <div id="e_quantityBox"><label id="e_quantityLabel">Miktar (Paket)</label><input id="e_sqm" type="number"></div>
 <div id="e_quantityTypeBox"><label>Miktar Türü</label><select id="e_quantityType"><option value="Paket">Paket</option><option value="1 TIR">1 TIR</option></select></div>
@@ -322,17 +324,51 @@ function showSection(section,btn){
 }
 window.showSection=showSection;
 
-// Metin alanları: boşluk tuşuna ve iOS seçim imlecine müdahale etmiyoruz.
-// Büyük harf CSS ile görünür, kayıt sırasında da normalize edilir.
+// Metinler gerçekten büyük harfe çevrilir; yalnızca CSS görünümüyle sınırlı kalmaz.
+document.addEventListener('input',function(e){
+ const el=e.target;
+ if(!el.matches('input[type="text"],input[type="search"],textarea'))return;
+ const start=el.selectionStart,end=el.selectionEnd,old=el.value,newValue=upperTR(old);
+ if(old!==newValue){el.value=newValue;try{el.setSelectionRange(start,end)}catch(_){} }
+});
+
+const PROVINCES=['ADANA','ADIYAMAN','AFYONKARAHİSAR','AĞRI','AMASYA','ANKARA','ANTALYA','ARTVİN','AYDIN','BALIKESİR','BİLECİK','BİNGÖL','BİTLİS','BOLU','BURDUR','BURSA','ÇANAKKALE','ÇANKIRI','ÇORUM','DENİZLİ','DİYARBAKIR','EDİRNE','ELAZIĞ','ERZİNCAN','ERZURUM','ESKİŞEHİR','GAZİANTEP','GİRESUN','GÜMÜŞHANE','HAKKARİ','HATAY','ISPARTA','MERSİN','İSTANBUL','İZMİR','KARS','KASTAMONU','KAYSERİ','KIRKLARELİ','KIRŞEHİR','KOCAELİ','KONYA','KÜTAHYA','MALATYA','MANİSA','KAHRAMANMARAŞ','MARDİN','MUĞLA','MUŞ','NEVŞEHİR','NİĞDE','ORDU','RİZE','SAKARYA','SAMSUN','SİİRT','SİNOP','SİVAS','TEKİRDAĞ','TOKAT','TRABZON','TUNCELİ','ŞANLIURFA','UŞAK','VAN','YOZGAT','ZONGULDAK','AKSARAY','BAYBURT','KARAMAN','KIRIKKALE','BATMAN','ŞIRNAK','BARTIN','ARDAHAN','IĞDIR','YALOVA','KARABÜK','KİLİS','OSMANİYE','DÜZCE'];
+let districtMap={};
+function normTR(s){return upperTR(String(s||'').replace(/İ/g,'I').replace(/ı/g,'I')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/İ/g,'I').trim();}
+function fillDatalist(id,items){$(id).innerHTML=items.map(v=>'<option value="'+esc(v)+'"></option>').join('');}
+function updateDistrictChoices(cityId,districtId){
+ const city=upperTR($(cityId).value).trim();
+ const key=Object.keys(districtMap).find(k=>normTR(k)===normTR(city));
+ const list=key?districtMap[key]:[];
+ fillDatalist('districtList',list);
+ const d=$(districtId);if(d.value&&list.length&&!list.some(v=>normTR(v)===normTR(d.value))) { /* yazılmış eski/serbest değer korunur */ }
+}
+async function loadProvinceDistricts(){
+ fillDatalist('provinceList',PROVINCES);
+ // 81 il ve ilçeler; veri GitHub'dan alınır. Yüklenemezse il/ilçe alanlarına elle yazmak mümkündür.
+ try{
+  const r=await fetch('https://raw.githubusercontent.com/talhaekrem/TurkiyeSehirVeIlcelerJSON/main/Turkey%20Cities%20and%20Districts.json',{cache:'force-cache'});
+  if(!r.ok)throw new Error('İlçe listesi yüklenemedi');
+  const j=await r.json();
+  const cities=j.cities||[],districts=j.districts||[];
+  const namesById={};cities.forEach(c=>namesById[String(c.Id)]=upperTR(c.name));
+  districtMap={};cities.forEach(c=>districtMap[upperTR(c.name)]=[]);
+  districts.forEach(d=>{const name=namesById[String(d.cityId)];if(name&&districtMap[name])districtMap[name].push(upperTR(d.name));});
+  Object.keys(districtMap).forEach(k=>districtMap[k].sort((a,b)=>a.localeCompare(b,'tr')));
+  fillDatalist('provinceList',Object.keys(districtMap).sort((a,b)=>a.localeCompare(b,'tr')));
+  updateDistrictChoices('city','district');
+ }catch(e){console.warn('İl/ilçe listesi çevrim içi alınamadı; elle giriş kullanılabilir.',e);}
+}
 
 function parseFlexibleNumber(v){const s=String(v??'').trim().replace(/\s/g,'');if(!s)return 0;if(s.includes(','))return Number(s.replace(/\./g,'').replace(',','.'))||0;if(/^\d+\.\d{3}$/.test(s))return Number(s.replace(/\./g,''))||0;return Number(s)||0}
 function upperTR(v){return String(v??'').toLocaleUpperCase('tr-TR')}
+function formatCreatedAt(x){const stamp=Number(x.createdAt||x.id||0);if(!stamp)return '-';const d=new Date(stamp);if(Number.isNaN(d.getTime()))return '-';return d.toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function save(){
  try{
   const customer=upperTR($('customer').value).trim();
   if(!customer){alert('Müşteri adını girin.');return;}
   const item={
-   id:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,
+   id:Date.now(),createdAt:Date.now(),customer,phone:$('phone').value.trim(),product:$('product').value,
    city:upperTR($('city').value).trim(),district:upperTR($('district').value).trim(),
    sqm:Number($('sqm').value)||0,quantityType:$('product').value==='Yerden Isıtma'?($('quantityType').value||'Paket'):'m²',density:$('density').value,foil:$('foil').value,packageCount:Number($('packageCount').value)||0,epsType:$('epsType').value,teamSystem:$('teamSystem').value,
    thickness:$('thickness').value,date:$('date').value,
@@ -355,13 +391,15 @@ function resetForm(){
  $('product').value='Yerden Isıtma';$('quantityType').value='Paket';$('packageCount').value='';$('epsType').value='Beyaz EPS';$('teamSystem').value='Evet';$('freightPayment').value='Bize ait';$('vat').value='Yok';productChanged();
 }
 function matches(x,q,city,prod){
- const text=[x.customer,x.phone,x.tractor,x.trailer,x.driver,x.city,x.district].join(' ').toLowerCase();
- return(!q||text.includes(q))&&(!city||x.city===city)&&(!prod||x.product===prod)
+ const text=[x.customer,x.phone,x.tractor,x.trailer,x.driver,x.city,x.district].join(' ').toLocaleLowerCase('tr-TR');
+ return(!q||text.includes(q.toLocaleLowerCase('tr-TR')))&&(!city||x.city===city)&&(!prod||x.product===prod)
 }
 function populateCities(){
- const cities=[...new Set(data.map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));
+ const existing=[...new Set(data.map(x=>x.city).filter(Boolean))];
+ const cities=[...new Set([...PROVINCES,...existing])].sort((a,b)=>a.localeCompare(b,'tr'));
  const opts='<option value="">Tüm iller</option>'+cities.map(c=>`<option>${esc(c)}</option>`).join('');
- $('fcity').innerHTML=opts;$('doneCity').innerHTML=opts;
+ const a=$('fcity').value,b=$('doneCity').value;$('fcity').innerHTML=opts;$('doneCity').innerHTML=opts;
+ if(cities.includes(a))$('fcity').value=a;if(cities.includes(b))$('doneCity').value=b;
 }
 function orderHTML(x){
  const isY=x.product==='Yerden Isıtma';
@@ -369,7 +407,8 @@ function orderHTML(x){
  const product=isY?`${esc(x.product)} · ${esc(x.foil)} · ${esc(x.density)} DNS`:x.product==='Mantolama'?`${esc(x.product)} · ${esc(x.epsType||'Beyaz EPS')} · Takım Sistem: ${esc(x.teamSystem||'Hayır')} · ${esc(x.thickness)} cm · ${esc(x.density)} DNS`:esc(x.product);
  return `<div class="order"><div class="order-top"><b>${esc(x.customer)}</b>${x.completed?'<span class="badge">Tamamlandı</span>':''}</div>
  <div class="meta"><b>${product}</b> · ${esc(x.city)||'-'} / ${esc(x.district)||'-'} · ${qty}<br>
- 📅 ${esc(x.date)||'-'} · 🚛 ${esc(x.tractor)||'-'} / ${esc(x.trailer)||'-'} · 👤 ${esc(x.driver)||'-'}<br>
+ 🕒 Sipariş oluşturma: <b>${esc(formatCreatedAt(x))}</b> (değiştirilemez)<br>
+ 📅 Sevkiyat: ${esc(x.date)||'-'} · 🚛 ${esc(x.tractor)||'-'} / ${esc(x.trailer)||'-'} · 👤 ${esc(x.driver)||'-'}<br>
  📞 <a href="tel:${String(x.phone||'').replace(/[^0-9+]/g,'')}">${esc(x.phone)||'-'}</a> · ☎️ <a href="tel:${String(x.soforTel||'').replace(/[^0-9+]/g,'')}">${esc(x.soforTel)||'-'}</a><br>
  💰 Nakliye: ${x.freight?Number(x.freight).toLocaleString('tr-TR')+' TL':'-'} · Ödeme: ${esc(x.freightPayment||'Bize ait')} · KDV: ${esc(x.vat)||'-'}</div>
  <div class="actions"><button onclick="shareOrder(${x.id})">📤 Paylaş</button><button onclick="openEdit(${x.id})">✏️ Düzenle</button>
@@ -377,8 +416,9 @@ function orderHTML(x){
  <button onclick="chooseFile(${x.id})">📎 Teslim Formu</button>${x.completed?`<button onclick="viewFile(${x.id})">📄 Formu Görüntüle</button>`:''}
  <button class="danger" onclick="delOrder(${x.id})">Sil</button></div></div>`;
 }
+function hasShipmentInfo(x){return !!([x.tractor,x.trailer,x.driver,x.soforTel].some(v=>String(v||'').trim())||x.date||Number(x.freight||0)>0);}
 function renderActive(){
- const q=$('search').value.toLowerCase(),arr=data.filter(x=>!x.completed&&matches(x,q,$('fcity').value,$('fproduct').value));
+ const q=$('search').value.toLowerCase(),sf=$('shipmentFilter').value,arr=data.filter(x=>!x.completed&&matches(x,q,$('fcity').value,$('fproduct').value)&&(sf==='all'||(sf==='entered'?hasShipmentInfo(x):!hasShipmentInfo(x))));
  const active=data.filter(x=>!x.completed);$('count').textContent=active.length;$('total').textContent=active.filter(x=>x.product==='Mantolama').reduce((a,x)=>a+Number(x.sqm||0),0).toLocaleString('tr-TR');$('pending').textContent=active.filter(x=>!x.tractor||!x.trailer||!x.driver).length;
  $('orders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Aktif sipariş bulunamadı.</div>';
 }
@@ -416,13 +456,13 @@ function delOrder(id){if(confirm('Bu sipariş silinsin mi?')){data=data.filter(x
 function openEdit(id){
  const x=data.find(a=>a.id===id);if(!x)return;editingId=id;
  ['customer','phone','city','district','sqm','date','tractor','trailer','driver','soforTel','freight','note'].forEach(k=>{if($('e_'+k))$('e_'+k).value=x[k]??''});
- $('e_product').value=x.product||'Yerden Isıtma';$('e_quantityType').value=x.quantityType||'Paket';editProductChanged();$('e_density').value=x.density||$('e_density').value;$('e_foil').value=x.foil||'Folyolu';$('e_packageCount').value=x.packageCount??'';$('e_epsType').value=x.epsType||'Beyaz EPS';$('e_teamSystem').value=x.teamSystem||'Hayır';if(x.thickness)$('e_thickness').value=x.thickness;$('e_freightPayment').value=x.freightPayment||'Bize ait';$('e_vat').value=x.vat||'Yok';$('e_shipmentPaste').value='';$('editModal').classList.add('show');
+ $('e_product').value=x.product||'Yerden Isıtma';$('e_quantityType').value=x.quantityType||'Paket';updateDistrictChoices('e_city','e_district');editProductChanged();$('e_density').value=x.density||$('e_density').value;$('e_foil').value=x.foil||'Folyolu';$('e_packageCount').value=x.packageCount??'';$('e_epsType').value=x.epsType||'Beyaz EPS';$('e_teamSystem').value=x.teamSystem||'Hayır';if(x.thickness)$('e_thickness').value=x.thickness;$('e_freightPayment').value=x.freightPayment||'Bize ait';$('e_vat').value=x.vat||'Yok';$('e_shipmentPaste').value='';$('editModal').classList.add('show');
 }
 function closeEdit(){$('editModal').classList.remove('show');editingId=null}
 function saveEdit(){
  const x=data.find(a=>a.id===editingId);if(!x)return;
  const customer=upperTR($('e_customer').value).trim();if(!customer)return alert('Müşteri adını girin.');
- Object.assign(x,{customer,phone:$('e_phone').value.trim(),product:$('e_product').value,city:upperTR($('e_city').value).trim(),district:upperTR($('e_district').value).trim(),sqm:Number($('e_sqm').value)||0,quantityType:$('e_product').value==='Yerden Isıtma'?($('e_quantityType').value||'Paket'):'m²',density:$('e_density').value,foil:$('e_foil').value,packageCount:Number($('e_packageCount').value)||0,epsType:$('e_epsType').value,teamSystem:$('e_teamSystem').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:upperTR($('e_tractor').value).trim(),trailer:upperTR($('e_trailer').value).trim(),driver:upperTR($('e_driver').value).trim(),soforTel:$('e_soforTel').value.trim(),freight:parseFlexibleNumber($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:upperTR($('e_note').value).trim(),updatedAt:Date.now()});
+ Object.assign(x,{createdAt:x.createdAt||Number(x.id)||Date.now(),customer,phone:$('e_phone').value.trim(),product:$('e_product').value,city:upperTR($('e_city').value).trim(),district:upperTR($('e_district').value).trim(),sqm:Number($('e_sqm').value)||0,quantityType:$('e_product').value==='Yerden Isıtma'?($('e_quantityType').value||'Paket'):'m²',density:$('e_density').value,foil:$('e_foil').value,packageCount:Number($('e_packageCount').value)||0,epsType:$('e_epsType').value,teamSystem:$('e_teamSystem').value,thickness:$('e_thickness').value,date:$('e_date').value,tractor:upperTR($('e_tractor').value).trim(),trailer:upperTR($('e_trailer').value).trim(),driver:upperTR($('e_driver').value).trim(),soforTel:$('e_soforTel').value.trim(),freight:parseFlexibleNumber($('e_freight').value)||0,freightPayment:$('e_freightPayment').value,vat:$('e_vat').value,note:upperTR($('e_note').value).trim(),updatedAt:Date.now()});
  saveLocal();cloudUpsert(x);closeEdit();populateCities();renderActive();renderCompleted();
 }
 
@@ -444,72 +484,88 @@ function parseOrderText(raw){
 function normalizeProduct(s){if(/yerden\s*ısıtma|yerden\s*isitma/i.test(s))return'Yerden Isıtma';if(/mantolama/i.test(s))return'Mantolama';return''}
 function applyOrder(){
  const p=parseOrderText($('orderPaste').value);if(!Object.keys(p).length)return alert('Sipariş bilgisi bulunamadı.');
- if(p.customer)$('customer').value=p.customer;if(p.phone)$('phone').value=p.phone;if(p.product){$('product').value=p.product;productChanged()}if(p.city)$('city').value=p.city;if(p.district)$('district').value=p.district;if(p.sqm)$('sqm').value=p.sqm;if(p.product==='Yerden Isıtma'&&/1\s*TIR/i.test(t)){$('quantityType').value='1 TIR';}else if(p.product==='Yerden Isıtma'){$('quantityType').value='Paket';}if(p.density)$('density').value=p.density;if(p.foil)$('foil').value=p.foil;if(p.thickness){productChanged();$('thickness').value=p.thickness}
+ if(p.customer)$('customer').value=p.customer;if(p.phone)$('phone').value=p.phone;if(p.product){$('product').value=p.product;productChanged()}if(p.city)$('city').value=p.city;if(p.district)$('district').value=p.district;if(p.sqm)$('sqm').value=p.sqm;if(p.product==='Yerden Isıtma'&&/1\s*TIR/i.test($('orderPaste').value)){$('quantityType').value='1 TIR';}else if(p.product==='Yerden Isıtma'){$('quantityType').value='Paket';}if(p.density)$('density').value=p.density;if(p.foil)$('foil').value=p.foil;if(p.thickness){productChanged();$('thickness').value=p.thickness}
  alert('Bulunan sipariş bilgileri forma aktarıldı. Kaydetmeden önce kontrol edin.');
 }
 
 function parseShipmentText(raw){
- const t=raw.replace(/\r/g,' ').replace(/\n/g,' ').replace(/\s+/g,' ').trim();
- let p={};
-
- // Plakalar: "ÇEKİCİ 16 BOJ 726 DORSE 16 AGG 200" veya "11 DT 432/11 ABV 460"
- let m=t.match(/(?:ÇEKİCİ|CEKICI)\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
- if(m)p.tractor=upperTR(m[1]).replace(/\s+/g,' ').trim();
- m=t.match(/DORSE\s*[:\-]?\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
- if(m)p.trailer=upperTR(m[1]).replace(/\s+/g,' ').trim();
+ const original=String(raw||'').replace(/\r/g,'\n');
+ const text=original.replace(/[\t ]+/g,' ').trim();
+ const lines=original.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+ const p={};
+ const plateRe=/\b(\d{2})\s*([A-ZÇĞİÖŞÜ]{1,3})\s*(\d{2,4})\b/gi;
+ const normalizePlate=m=>upperTR(m[1]+' '+m[2]+' '+m[3]).replace(/\s+/g,' ').trim();
+ const plates=[];let pm;
+ while((pm=plateRe.exec(text))!==null){const val=normalizePlate(pm);if(!plates.some(v=>normTR(v)===normTR(val)))plates.push(val);}
+ // Etiketler varsa her zaman etiket önceliklidir.
+ let m=text.match(/(?:ÇEKİCİ|CEKICI)\s*[:\-]?\s*(\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,4})/i);
+ if(m){const q=m[1].match(/(\d{2})\s*([A-ZÇĞİÖŞÜ]{1,3})\s*(\d{2,4})/i);if(q)p.tractor=normalizePlate(q);}
+ m=text.match(/DORSE\s*[:\-]?\s*(\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,4})/i);
+ if(m){const q=m[1].match(/(\d{2})\s*([A-ZÇĞİÖŞÜ]{1,3})\s*(\d{2,4})/i);if(q)p.trailer=normalizePlate(q);}
  if(!p.tractor||!p.trailer){
-   m=t.match(/([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})\s*\/\s*([0-9]{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*[0-9]{2,4})/i);
-   if(m){p.tractor=p.tractor||upperTR(m[1]).replace(/\s+/g,' ');p.trailer=p.trailer||upperTR(m[2]).replace(/\s+/g,' ');}
+  m=text.match(/(\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,4})\s*\/\s*(\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,4})/i);
+  if(m){const a=m[1].match(/(\d{2})\s*([A-ZÇĞİÖŞÜ]{1,3})\s*(\d{2,4})/i),b=m[2].match(/(\d{2})\s*([A-ZÇĞİÖŞÜ]{1,3})\s*(\d{2,4})/i);if(a&&!p.tractor)p.tractor=normalizePlate(a);if(b&&!p.trailer)p.trailer=normalizePlate(b);}
  }
-
- // Telefon: TLF/TELEFON/ŞOFÖR TEL; TC numarasını telefon olarak alma.
- m=t.match(/(?:ŞOFÖR\s*TEL|SOFOR\s*TEL|TLF|TELEFON|CEP)\s*[:\-]?\s*(0?5\s*\d{3}\s*\d{3}\s*\d{2}\s*\d{2}|0?5\d{9})/i);
- if(m)p.soforTel=m[1].replace(/\s/g,'');
- if(!p.soforTel){
-   const phones=t.match(/0?5\d{9}/g);
-   if(phones)p.soforTel=phones[phones.length-1];
- }
-
- // Şoför adı: etiketli biçimler
- m=t.match(/(?:ŞOFÖR|SOFOR)\s*[:\-]?\s*([A-Za-zÇĞİÖŞÜçğıöşü]+(?:\s+[A-Za-zÇĞİÖŞÜçğıöşü]+){1,3})(?=\s+(?:TC|TLF|TEL|TELEFON|0?5\d|DİYARBAKIR|DIYARBAKIR|İSTANBUL|ISTANBUL|ANKARA|İZMİR|IZMIR)\b|$)/i);
+ if(!p.tractor&&plates[0])p.tractor=plates[0];
+ if(!p.trailer&&plates.length>1)p.trailer=plates[1];
+ // Telefonlar: 05 ile başlayan 11 haneli numaralar. 11 haneli TC kimlikleri alınmaz.
+ const phoneRe=/(?<!\d)(?:\+?90[\s-]?)?(?:05(?:[\s().-]*\d){9}|5(?:[\s().-]*\d){9})(?!\d)/g;
+ const phones=(text.match(phoneRe)||[]).map(v=>v.replace(/\D/g,'')).map(v=>v.startsWith('90')&&v.length===12?'0'+v.slice(2):v).filter(v=>/^05\d{9}$/.test(v)||/^5\d{9}$/.test(v)).map(v=>v.startsWith('5')?'0'+v:v);
+ m=text.match(/(?:ŞOFÖR\s*(?:TEL|TELEFON)|SOFOR\s*(?:TEL|TELEFON)|TLF|TELEFON|CEP|TEL)\s*[:\-]?\s*((?:\+?90[\s-]?)?0?5[\d\s().-]{8,16})/i);
+ if(m){const digits=m[1].replace(/\D/g,'');const v=digits.startsWith('90')&&digits.length===12?'0'+digits.slice(2):digits;if(/^05\d{9}$/.test(v))p.soforTel=v;else if(/^5\d{9}$/.test(v))p.soforTel='0'+v;}
+ if(!p.soforTel&&phones.length)p.soforTel=phones[0];
+ // TC numaraları 11 hane olabilir; telefonlardan ayrıştırılır.
+ // Önce TC/etiketlerin öncesindeki ad, ardından etiketli şoför adı aranır.
+ m=text.match(/(?:ŞOFÖR|SOFOR)\s*[:\-]?\s*([A-ZÇĞİÖŞÜa-zçğıöşü]+(?:[ \t]+[A-ZÇĞİÖŞÜa-zçğıöşü]+){1,3})(?=[ \t]+(?:TC|T\.C\.|TEL|TLF|TELEFON|CEP|ÇEKİCİ|CEKICI|DORSE)\b|$)/i);
  if(m)p.driver=upperTR(m[1]).trim();
-
- // "TC:... 0532..." sonrasında gelen adlarda sık görülen "Mustafa Çakır" biçimi
  if(!p.driver){
-   const candidates=t.match(/\b([A-Za-zÇĞİÖŞÜçğıöşü]{2,25}\s+[A-Za-zÇĞİÖŞÜçğıöşü]{2,25})\b/g)||[];
-   const bad=/^(CENKAR|FABRİKA|FABRIKA|DİYARBAKIR|DIYARBAKIR|TEKİRDAĞ|TEKIRDAG|KDV|ÖDEME|ODEME|TENTELİ|TENTELI)$/i;
-   for(const c of candidates){
-     const parts=c.trim().split(/\s+/);
-     if(parts.length===2&&!bad.test(parts[0])&&!bad.test(parts[1])&&!/\d/.test(c)){p.driver=upperTR(c);break}
-   }
+  let prefix=text;
+  const cutMarkers=[/\bTC\b/i,/\bT\.C\./i,/\bÇEKİCİ\b/i,/\bCEKICI\b/i,/\bDORSE\b/i,/\bTLF\b/i,/\bTEL(?:EFON)?\b/i,/\bCEP\b/i];
+  let cut=prefix.length;cutMarkers.forEach(re=>{const z=re.exec(prefix);if(z&&z.index<cut)cut=z.index;});
+  prefix=prefix.slice(0,cut).replace(/\b\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,4}\b/gi,' ').replace(/\b\d{11}\b/g,' ').replace(/(?:\+?90[\s-]?)?0?5[\d\s().-]{8,16}/g,' ');
+  const candidates=prefix.match(/[A-ZÇĞİÖŞÜa-zçğıöşü]{2,25}(?:[ \t]+[A-ZÇĞİÖŞÜa-zçğıöşü]{2,25}){1,2}/g)||[];
+  const bad=/^(CENKAR|FABRİKA|FABRIKA|DİYARBAKIR|DIYARBAKIR|TEKİRDAĞ|TEKIRDAG|KDV|ÖDEME|ODEME|TENTELİ|TENTELI|KÖPÜK|STRAFOR|YARIN|SABAH|ANKARA|ETİMESGUT)$/i;
+  for(const c of candidates){const parts=c.trim().split(/\s+/);if(parts.length>=2&&!parts.some(w=>bad.test(w))){p.driver=upperTR(c.trim());break;}}
  }
-
- // Varış: açık etiket veya şehir/ilçe çifti.
- m=t.match(/(?:VARIŞ|VARIS|TESLİMAT|TESLIMAT)\s*[:\-]?\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i);
+ if(!p.driver){
+  for(const line of lines){
+   let candidate=line.replace(/\b\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,4}\b/gi,' ').replace(/\b\d{11}\b/g,' ').replace(/(?:\+?90[\s-]?)?0?5[\d\s().-]{8,16}/g,' ').replace(/\b(TC|T\.C\.|ÇEKİCİ|CEKICI|DORSE|TEL|TLF|TELEFON|CEP)\b/gi,' ').trim();
+   if(/^[A-ZÇĞİÖŞÜa-zçğıöşü]{2,25}(?:\s+[A-ZÇĞİÖŞÜa-zçğıöşü]{2,25}){1,2}$/.test(candidate)){p.driver=upperTR(candidate);break;}
+  }
+ }
+ // Varış / il-ilçe yalnızca açıkça varış veya teslimat diye belirtilmişse alınır.
+ m=text.match(/(?:VARIŞ|VARIS|TESLİMAT|TESLIMAT|VARIŞ YERİ|VARIS YERI)\s*[:\-]?\s*([A-ZÇĞİÖŞÜa-zçğıöşü]+)\s*\/\s*([A-ZÇĞİÖŞÜa-zçğıöşü]+)/i);
  if(m){p.city=upperTR(m[1]);p.district=upperTR(m[2]);}
- if(!p.city){
-   m=t.match(/\b(Diyarbakır|Tekirdağ|İstanbul|Ankara|İzmir|Bursa|Kocaeli|Konya|Antalya|Adana|Mersin|Kayseri|Gaziantep|Şanlıurfa|Malatya|Elazığ|Van|Erzurum|Samsun|Trabzon|Sakarya|Manisa|Denizli|Eskişehir|Balıkesir|Hatay|Muğla|Aydın|Çanakkale|Kahramanmaraş|Osmaniye|Mardin|Batman|Siirt|Bitlis|Bingöl|Şırnak|Hakkari|Ağrı|Iğdır|Kars|Ardahan|Artvin|Rize|Giresun|Ordu|Tokat|Amasya|Çorum|Sinop|Kastamonu|Karabük|Bartın|Zonguldak|Düzce|Bolu|Bilecik|Kütahya|Uşak|Afyonkarahisar|Isparta|Burdur|Kırklareli|Edirne|Yalova|Çankırı|Kırıkkale|Nevşehir|Niğde|Aksaray|Karaman|Kırşehir|Yozgat|Sivas|Tunceli|Adıyaman|Kilis|Muş)\s*\/\s*([A-Za-zÇĞİÖŞÜçğıöşü]+)/i);
-   if(m){p.city=upperTR(m[1]);p.district=upperTR(m[2]);}
+ else {
+  // Önce varış/teslimat ifadesine yakın il/ilçe aranır.
+  m=text.match(/(?:VARIŞ|VARIS|TESLİMAT|TESLIMAT)[^\n]{0,50}?([A-ZÇĞİÖŞÜa-zçğıöşü]+)\s*\/\s*([A-ZÇĞİÖŞÜa-zçğıöşü]+)/i);
+  if(m){p.city=upperTR(m[1]);p.district=upperTR(m[2]);}
  }
-
- // Freight: 47.bin / 47 bin / 47000 TL
- m=t.match(/(\d+(?:[\.,]\d+)?)\s*(?:bin|BİN)?\s*TL/i);
- if(m){let n=Number(m[1].replace(/\./g,'').replace(',','.'));p.freight=/bin/i.test(m[0])?n*1000:n;}
-
- if(/KDV\s*(?:YOK|0|SIFIR)/i.test(t))p.vat='Yok';
- else if(/KDV\s*(?:VAR|DAHİL|DAHIL)/i.test(t))p.vat='Var';
-
+ if(!p.city){
+  // Örnek: "Diyarbakır'dan ... Ankara/Etimesgut"; yalnızca bilinen il adının yanındaki çift alınır.
+  const pairs=text.match(/([A-ZÇĞİÖŞÜa-zçğıöşü]+)\s*\/\s*([A-ZÇĞİÖŞÜa-zçğıöşü]+)/g)||[];
+  for(const pair of pairs){const z=pair.match(/([A-ZÇĞİÖŞÜa-zçğıöşü]+)\s*\/\s*([A-ZÇĞİÖŞÜa-zçğıöşü]+)/);if(z&&PROVINCES.some(c=>normTR(c)===normTR(z[1]))){p.city=upperTR(z[1]);p.district=upperTR(z[2]);break;}}
+ }
+ // Sevkiyat tarihi: etiketli tarih tercih edilir.
+ m=text.match(/(?:SEVK(?:İYAT)? TARİHİ|SEVK(?:İYAT)? TARIHI|TARİH|TARIH)\s*[:\-]?\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2})/i);
+ if(m){let v=m[1];if(/^\d{4}-/.test(v))p.date=v;else{const a=v.split(/[./-]/);let y=a[2];if(y.length===2)y='20'+y;p.date=y+'-'+a[1].padStart(2,'0')+'-'+a[0].padStart(2,'0');}}
+ // Ücret sadece TL ifadesi veya açıkça nakliye/fiyat etiketiyle alınır.
+ m=text.match(/(?:NAKLİYE(?: ÜCRETİ)?|NAKLIYE(?: UCRETI)?|ÜCRET|UCRET|FİYAT|FIYAT)[^\d]{0,12}(\d[\d.,]*)\s*(BİN|BIN|TL)?/i);
+ if(!m)m=text.match(/(\d+)\s*[.,]?\s*(BİN|BIN)\s*TL/i);
+ if(m){let rawNum=m[1];let n=parseFlexibleNumber(rawNum);if(/\b(BİN|BIN)\b/i.test(m[2]||''))n*=1000;p.freight=n;}
+ if(/KDV\s*(?:YOK|0|SIFIR)|KDV\s*YOK/i.test(text))p.vat='Yok';else if(/KDV\s*(?:VAR|DAHİL|DAHIL)/i.test(text))p.vat='Var';
  return p;
 }
 function applyShipment(mode){
  const edit=mode==='edit',raw=$(edit?'e_shipmentPaste':'shipmentPaste').value.trim();
  if(!raw)return alert('Önce sevk mesajını yapıştırın.');
  const p=parseShipmentText(raw),pre=edit?'e_':'';
- const fields=['tractor','trailer','driver','soforTel','city','district','freight','vat'];
+ const fields=['tractor','trailer','driver','soforTel','city','district','date','freight','vat'];
  let found=0;
  for(const k of fields){
    if(p[k]!==undefined&&$(pre+k)){
-     $(pre+k).value=String(p[k]);
+     $(pre+k).value=(['tractor','trailer','driver','city','district'].includes(k)?upperTR(String(p[k])):String(p[k]));
+     if(k==='city')updateDistrictChoices(edit?'e_city':'city',edit?'e_district':'district');
      found++;
    }
  }
@@ -632,7 +688,7 @@ async function initCloud(){
 
 
 $('product').onchange=productChanged;$('quantityType').onchange=()=>updateQuantityUI(false);$('e_quantityType').onchange=()=>updateQuantityUI(true);$('saveBtn').onclick=function(e){e.preventDefault();save();};$('parseOrderBtn').onclick=()=>applyOrder();$('parseShipmentBtn').onclick=()=>applyShipment('new');
-$('search').oninput=renderActive;$('fcity').onchange=renderActive;$('fproduct').onchange=renderActive;$('doneSearch').oninput=renderCompleted;$('doneCity').onchange=renderCompleted;$('doneProduct').onchange=renderCompleted;$('doneFrom').onchange=renderCompleted;$('doneTo').onchange=renderCompleted;$('doneClearDates').onclick=()=>{$('doneFrom').value='';$('doneTo').value='';renderCompleted()};
+$('search').oninput=renderActive;$('fcity').onchange=renderActive;$('fproduct').onchange=renderActive;$('shipmentFilter').onchange=renderActive;$('city').addEventListener('input',()=>updateDistrictChoices('city','district'));$('e_city').addEventListener('input',()=>updateDistrictChoices('e_city','e_district'));loadProvinceDistricts();$('doneSearch').oninput=renderCompleted;$('doneCity').onchange=renderCompleted;$('doneProduct').onchange=renderCompleted;$('doneFrom').onchange=renderCompleted;$('doneTo').onchange=renderCompleted;$('doneClearDates').onclick=()=>{$('doneFrom').value='';$('doneTo').value='';renderCompleted()};
 $('exportBtn').onclick=exportCompleted;$('closeEdit').onclick=closeEdit;$('cancelEdit').onclick=closeEdit;$('saveEdit').onclick=saveEdit;$('editParseShipment').onclick=()=>applyShipment('edit');
 $('e_product').onchange=editProductChanged;
 $('completedFilterToggle').onclick=()=>{$('completedFilterPanel').classList.toggle('hidden');};
