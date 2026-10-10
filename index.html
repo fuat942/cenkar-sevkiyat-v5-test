@@ -716,7 +716,9 @@ $('cloudLogout').onclick=async()=>{stopCloudAutoSync();if(sb)await sb.auth.signO
 
 setDensity($('density'),'Yerden Isıtma','22');setThickness($('thickness'));$('epsType').value='Beyaz EPS';$('teamSystem').value='Evet';productChanged();
 setDensity($('e_density'),'Yerden Isıtma','22');setThickness($('e_thickness'));$('e_epsType').value='Beyaz EPS';$('e_teamSystem').value='Hayır';$('e_quantityType').value='Paket';editProductChanged();
-// Bulut başlangıçta otomatik çalışmaz. Sadece manuel senkronizasyon için kullanılabilir.
+// Varsa oturum açılmış bulut hesabını geri yükle; hiçbir veri otomatik senkronize edilmez.
+initCloud().catch(e=>{console.warn('Bulut başlangıç kontrolü başarısız:',e);updateCloudUI();});
+// Bulut başlangıçta otomatik senkronizasyon yapmaz. Yalnızca elle senkronizasyon için kullanılabilir.
 // Eski Service Worker / cache temizliği: yerel sipariş verilerine dokunmaz.
 (async()=>{try{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs){await r.unregister();}}if('caches' in window){const ks=await caches.keys();for(const k of ks){await caches.delete(k);}}}catch(e){console.warn('Eski önbellek temizlenemedi',e);}})();
 // Service worker devre dışı: eski önbellek kullanılmasın.
