@@ -414,10 +414,11 @@ function orderHTML(x){
  <button onclick="chooseFile(${x.id})">📎 Teslim Formu</button>${x.completed?`<button onclick="viewFile(${x.id})">📄 Formu Görüntüle</button>`:''}
  <button class="danger" onclick="delOrder(${x.id})">Sil</button></div></div>`;
 }
-function hasShipmentInfo(x){return !!([x.tractor,x.trailer,x.driver,x.soforTel].some(v=>String(v||'').trim())||x.date||Number(x.freight||0)>0);}
+// Sevkiyat bilgisi: plaka, şoför, sevkiyat tarihi veya nakliye ücreti. Müşteri iletişim telefonu ve tek başına şoför telefonu sevkiyat girildi sayılmaz.
+function hasShipmentInfo(x){return !!([x.tractor,x.trailer,x.driver].some(v=>String(v||'').trim())||String(x.date||'').trim()||Number(x.freight||0)>0);}
 function renderActive(){
  const q=$('search').value.toLowerCase(),sf=$('shipmentFilter').value,arr=data.filter(x=>!x.completed&&matches(x,q,$('fcity').value,$('fproduct').value)&&(sf==='all'||(sf==='entered'?hasShipmentInfo(x):!hasShipmentInfo(x))));
- const active=data.filter(x=>!x.completed);$('count').textContent=active.length;$('total').textContent=active.filter(x=>x.product==='Mantolama').reduce((a,x)=>a+Number(x.sqm||0),0).toLocaleString('tr-TR');$('pending').textContent=active.filter(x=>!x.tractor||!x.trailer||!x.driver).length;
+ const active=data.filter(x=>!x.completed);$('count').textContent=active.length;$('total').textContent=active.filter(x=>x.product==='Mantolama').reduce((a,x)=>a+Number(x.sqm||0),0).toLocaleString('tr-TR');$('pending').textContent=active.filter(x=>!hasShipmentInfo(x)).length;
  $('orders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Aktif sipariş bulunamadı.</div>';
 }
 function renderCompleted(){
