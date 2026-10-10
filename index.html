@@ -102,7 +102,7 @@ if ('serviceWorker' in navigator) {
 <div><label>İl</label><select id="city" autocomplete="off"><option value="">İl seçin</option></select></div>
 <div><label>İlçe</label><select id="district" autocomplete="off" disabled><option value="">Önce il seçin</option></select></div>
 
-<div class="full"><label>İrtibat Telefonu</label><input id="phone" type="tel" inputmode="tel" placeholder="05xx xxx xx xx"></div>
+<div class="full"><label>İrtibat Telefonu</label><div style="display:flex;gap:8px;align-items:center"><input id="phone" type="tel" inputmode="tel" placeholder="05xx xxx xx xx" style="flex:1;min-width:0"><button type="button" id="pickPhone" style="white-space:nowrap">📇 Rehberden Seç</button></div></div>
 
 <div id="quantityBox"><label id="quantityLabel">Miktar (Paket)</label><input id="sqm" type="number" inputmode="decimal" placeholder="Paket adedi"></div>
 <div id="quantityTypeBox"><label>Miktar Türü</label><select id="quantityType"><option value="Paket">Paket</option><option value="1 TIR">1 TIR</option></select></div>
@@ -192,7 +192,7 @@ if ('serviceWorker' in navigator) {
 <div><label>Yoğunluk (DNS)</label><select id="e_density"></select></div>
 <div><label>İl</label><select id="e_city" autocomplete="off"><option value="">İl seçin</option></select></div>
 <div><label>İlçe</label><select id="e_district" autocomplete="off" disabled><option value="">Önce il seçin</option></select></div>
-<div class="full"><label>İrtibat Telefonu</label><input id="e_phone" type="tel"></div>
+<div class="full"><label>İrtibat Telefonu</label><div style="display:flex;gap:8px;align-items:center"><input id="e_phone" type="tel" inputmode="tel" style="flex:1;min-width:0"><button type="button" id="e_pickPhone" style="white-space:nowrap">📇 Rehberden Seç</button></div></div>
 <div id="e_quantityBox"><label id="e_quantityLabel">Miktar (Paket)</label><input id="e_sqm" type="number"></div>
 <div id="e_quantityTypeBox"><label>Miktar Türü</label><select id="e_quantityType"><option value="Paket">Paket</option><option value="1 TIR">1 TIR</option></select></div>
 <div id="e_foilBox"><label>Yerden Isıtma</label><select id="e_foil"><option>Folyolu</option><option>Folyosuz</option></select></div>
@@ -682,6 +682,25 @@ async function initCloud(){
 }
 // Bulut otomatik senkronizasyonu KAPALI. Yalnızca 'Şimdi Senkronize Et' ile çalışır.
 
+
+async function pickContactPhone(inputId){
+  const input=$(inputId);
+  if(!('contacts' in navigator) || typeof navigator.contacts.select!=='function'){
+    alert('Bu tarayıcı rehberden kişi seçmeyi desteklemiyor. Android Chrome üzerinde deneyebilir veya numarayı elle yazabilirsin.');
+    return;
+  }
+  try{
+    const contacts=await navigator.contacts.select(['tel'],{multiple:false});
+    if(!contacts || !contacts.length) return;
+    const tels=contacts[0].tel;
+    const phone=Array.isArray(tels)?tels.find(v=>String(v||'').trim()):tels;
+    if(phone) { input.value=String(phone).trim(); input.dispatchEvent(new Event('input',{bubbles:true})); }
+  }catch(e){
+    if(e && e.name!=='AbortError') alert('Rehber açılamadı. Tarayıcı izinlerini kontrol et veya numarayı elle yaz.');
+  }
+}
+$('pickPhone').onclick=()=>pickContactPhone('phone');
+$('e_pickPhone').onclick=()=>pickContactPhone('e_phone');
 
 $('product').onchange=productChanged;$('quantityType').onchange=()=>updateQuantityUI(false);$('e_quantityType').onchange=()=>updateQuantityUI(true);$('saveBtn').onclick=function(e){e.preventDefault();save();};$('parseOrderBtn').onclick=()=>applyOrder();$('parseShipmentBtn').onclick=()=>applyShipment('new');
 $('search').oninput=renderActive;$('fcity').onchange=renderActive;$('fproduct').onchange=renderActive;$('shipmentFilter').onchange=renderActive;$('city').addEventListener('input',()=>updateDistrictChoices('city','district'));$('city').addEventListener('change',()=>{ $('district').value=''; updateDistrictChoices('city','district'); });$('e_city').addEventListener('input',()=>updateDistrictChoices('e_city','e_district'));$('e_city').addEventListener('change',()=>{ $('e_district').value=''; updateDistrictChoices('e_city','e_district'); });loadProvinceDistricts();$('doneSearch').oninput=renderCompleted;$('doneCity').onchange=renderCompleted;$('doneProduct').onchange=renderCompleted;$('doneFrom').onchange=renderCompleted;$('doneTo').onchange=renderCompleted;$('doneClearDates').onclick=()=>{$('doneFrom').value='';$('doneTo').value='';renderCompleted()};
