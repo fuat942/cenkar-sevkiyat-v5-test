@@ -254,8 +254,16 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 function saveLocal(){try{localStorage.setItem('cenkar_orders',JSON.stringify(data));return true}catch(e){console.error('Yerel kayıt hatası:',e);alert('Kayıt yapılamadı: telefon hafızasında yerel kayıt sorunu var.');return false}}
 function setDensity(select,product,old){
  select.innerHTML='';
- if(product==='Mantolama'){for(let i=8;i<=30;i+=2)select.add(new Option(i,i))}
- else {for(let i=22;i<=40;i+=2)select.add(new Option(i,i))}
+ if(product==='Mantolama'){
+   for(let i=8;i<=30;i+=2)select.add(new Option(i,i));
+ }else{
+   // Paket ağırlıkları: PDF'deki paket kg değerleri gram olarak gösterilir.
+   const weights={22:5530,24:5875,26:6221,28:6566,30:6912,32:7258,34:7603,36:7949,38:8294,40:8640};
+   for(let i=22;i<=40;i+=2){
+     const grams=weights[i].toLocaleString('tr-TR');
+     select.add(new Option(`${i} DNS (${grams} gr)`,String(i)));
+   }
+ }
  if(old && [...select.options].some(o=>o.value===String(old)))select.value=old;
 }
 function setThickness(select){select.innerHTML='';for(let i=1;i<=15;i++)select.add(new Option(i,i))}
