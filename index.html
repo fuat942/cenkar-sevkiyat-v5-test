@@ -28,7 +28,7 @@ button{font-family:inherit}
 .secondary{width:100%;border:1px solid #d7dce4;border-radius:10px;padding:10px;background:#fff;font-weight:700}
 .small{font-size:12px;color:#687385;line-height:1.4}
 .hidden{display:none!important}
-.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:11px}
+.summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:11px}
 .stat{background:#fff;border-radius:12px;padding:10px}.stat b{display:block;font-size:20px}.stat span{font-size:11px;color:#687385}
 .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}.filters input{grid-column:1/-1}.filter-toggle{width:100%;border:1px solid #d7dce4;border-radius:10px;padding:10px;background:#fff;font-weight:800;margin-bottom:8px}.filter-panel.hidden{display:none!important}
 .order{border:1px solid #e2e7ed;box-shadow:none}
@@ -57,7 +57,7 @@ button{font-family:inherit}
 .cancel{background:#e5e7eb}.save{background:#111827;color:#fff}
 #cloudModal{align-items:center;padding:18px}.cloud-box{max-width:420px;border-radius:18px}
 .cloud-box input{margin:5px 0}.cloud-box button{width:100%;margin-top:7px;padding:11px;border:0;border-radius:10px;font-weight:800}
-@media(max-width:440px){.grid{gap:8px}.grid input,.grid select{font-size:15.5px}.summary{grid-template-columns:1fr 1fr}.summary .stat:last-child{grid-column:1/-1}}
+@media(max-width:440px){.grid{gap:8px}.grid input,.grid select{font-size:15.5px}.summary{grid-template-columns:1fr 1fr}}
 @media(max-width:350px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
 input:not([type]),input[type=text],textarea{text-transform:uppercase}
 </style>
@@ -84,6 +84,7 @@ if ('serviceWorker' in navigator) {
 <header>
 <h1>🚚 Cenkar Sevkiyat</h1>
 <div class="tabs">
+<button type="button" class="tab" data-section="summary" onclick="return showSection('summary',this)">📊 Günlük Özet</button>
 <button type="button" class="tab active" data-section="new" onclick="return showSection('new',this)">➕ Yeni Sipariş</button>
 <button type="button" class="tab" data-section="list" onclick="return showSection('list',this)">📋 Siparişler</button>
 <button type="button" class="tab" data-section="completed" onclick="return showSection('completed',this)">✅ Tamamlananlar</button>
@@ -96,6 +97,22 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <main>
+<section id="summary" class="hidden">
+<div class="card"><h2 style="margin:0 0 5px">📊 Günlük Özet</h2><div class="small" id="summaryDate"></div></div>
+<div class="summary">
+<div class="stat"><b id="todayNew">0</b><span>Bugün alınan sipariş</span></div>
+<div class="stat"><b id="summaryActive">0</b><span>Aktif sipariş</span></div>
+<div class="stat"><b id="summaryPending">0</b><span>Sevkiyat bekleyen</span></div>
+<div class="stat"><b id="summaryShared">0</b><span>Sevk işleminde</span></div>
+<div class="stat"><b id="summaryCompleted">0</b><span>Bugün tamamlanan</span></div>
+</div>
+<div class="card"><h3 style="margin:0 0 10px">Ürün dağılımı — aktif siparişler</h3>
+<div class="summary">
+<div class="stat"><b id="summaryUnderfloor">0</b><span>Yerden Isıtma</span></div>
+<div class="stat"><b id="summaryMantolama">0</b><span>Mantolama</span></div>
+</div></div>
+<button class="secondary" type="button" onclick="renderDailySummary()">🔄 Özeti Yenile</button>
+</section>
 <section id="new">
 <div class="card">
 <div class="grid">
@@ -150,6 +167,8 @@ if ('serviceWorker' in navigator) {
 <div class="stat"><b id="count">0</b><span>Aktif Sipariş</span></div>
 <div class="stat"><b id="total">0</b><span>Toplam m²</span></div>
 <div class="stat"><b id="pending">0</b><span>Sevkiyat Bekleyen</span></div>
+<div class="stat"><b id="inProcess">0</b><span>Sevk İşleminde</span></div>
+<div class="stat"><b id="missingDetails">0</b><span>Eksik Sevk Bilgisi</span></div>
 </div>
 <div class="card"><div class="filters">
 <input id="search" placeholder="🔎 Müşteri, plaka veya şoför ara">
@@ -332,6 +351,9 @@ function showSection(section,btn){
    b.classList.remove('active');
  });
  if(btn)btn.classList.add('active');
+ if(section==='summary'){
+   renderDailySummary();
+ }
  if(section==='list'){
    populateCities();
    renderActive();
@@ -427,6 +449,7 @@ function orderHTML(x){
  const product=isY?`${esc(x.product)} · ${esc(x.foil)} · ${esc(x.density)} DNS (${esc(underfloorPackageWeight(x.density))})`:x.product==='Mantolama'?`${esc(x.product)} · ${esc(x.epsType||'Beyaz EPS')} · Takım Sistem: ${esc(x.teamSystem||'Hayır')} · ${esc(x.thickness)} cm · ${esc(x.density)} DNS`:esc(x.product);
  return `<div class="order ${shipmentClass}"><div class="order-top"><b>${esc(x.customer)}</b>${x.completed?'<span class="badge">Tamamlandı</span>':''}</div>
  <div class="meta"><b>${product}</b> · ${esc(x.city)||'-'} / ${esc(x.district)||'-'} · ${qty}<br><span class="status-label">${shipmentLabel}</span><br>
+ ${!x.completed&&!x.sharedAt&&!hasCompleteShipmentInfo(x)?`<span class="small" style="display:inline-block;margin-top:5px;color:#991b1b;font-weight:700">Eksik bilgi: ${esc(missingShipmentFields(x).join(', '))}</span><br>`:''}
  <div class="created-at">Oluşturulma: ${esc(formatCreatedAt(x))}</div>
  📅 Sevkiyat: ${esc(x.date)||'-'} · 🚛 ${esc(x.tractor)||'-'} / ${esc(x.trailer)||'-'} · 👤 ${esc(x.driver)||'-'}<br>
  📞 <a href="tel:${String(x.phone||'').replace(/[^0-9+]/g,'')}">${esc(x.phone)||'-'}</a> · ☎️ <a href="tel:${String(x.soforTel||'').replace(/[^0-9+]/g,'')}">${esc(x.soforTel)||'-'}</a><br>
@@ -442,11 +465,37 @@ function hasShipmentInfo(x){
  const hasText=v=>String(v??'').trim().length>0;
  return hasText(x.tractor)||hasText(x.trailer)||hasText(x.driver);
 }
+function missingShipmentFields(x){
+ const missing=[];
+ if(!String(x.tractor||'').trim())missing.push('çekici plakası');
+ if(!String(x.trailer||'').trim())missing.push('dorse plakası');
+ if(!String(x.driver||'').trim())missing.push('şoför adı');
+ return missing;
+}
+function hasCompleteShipmentInfo(x){return missingShipmentFields(x).length===0;}
+function renderDailySummary(){
+ const today=todayLocal();
+ const isToday=value=>{if(!value)return false;const d=new Date(Number(value));return !Number.isNaN(d.getTime())&&`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`===today;};
+ const active=data.filter(x=>!x.completed);
+ const todayCreated=data.filter(x=>isToday(x.createdAt||x.id));
+ const completedToday=data.filter(x=>x.completed&&isToday(x.updatedAt));
+ $('summaryDate').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+ $('todayNew').textContent=todayCreated.length;
+ $('summaryActive').textContent=active.length;
+ $('summaryPending').textContent=active.filter(x=>!hasShipmentInfo(x)).length;
+ $('summaryShared').textContent=active.filter(x=>Boolean(x.sharedAt)).length;
+ $('summaryCompleted').textContent=completedToday.length;
+ $('summaryUnderfloor').textContent=active.filter(x=>x.product==='Yerden Isıtma').length;
+ $('summaryMantolama').textContent=active.filter(x=>x.product==='Mantolama').length;
+}
 function renderActive(){
  const q=$('search').value.toLowerCase(),sf=$('shipmentFilter').value,arr=data.filter(x=>!x.completed&&matches(x,q,$('fcity').value,$('fproduct').value)&&(sf==='all'||(sf==='entered'?hasShipmentInfo(x):!hasShipmentInfo(x))));
  arr.sort((a,b)=>Number(Boolean(b.sharedAt))-Number(Boolean(a.sharedAt)) || Number(hasShipmentInfo(b))-Number(hasShipmentInfo(a)) || Number(b.updatedAt||0)-Number(a.updatedAt||0));
  const active=data.filter(x=>!x.completed);$('count').textContent=active.length;$('total').textContent=active.filter(x=>x.product==='Mantolama').reduce((a,x)=>a+Number(x.sqm||0),0).toLocaleString('tr-TR');$('pending').textContent=active.filter(x=>!hasShipmentInfo(x)).length;
+ $('inProcess').textContent=active.filter(x=>Boolean(x.sharedAt)).length;
+ $('missingDetails').textContent=active.filter(x=>!x.sharedAt&&!hasCompleteShipmentInfo(x)).length;
  $('orders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Aktif sipariş bulunamadı.</div>';
+ try{renderDailySummary()}catch(e){}
 }
 function renderCompleted(){
  const all=data.filter(x=>x.completed);
@@ -460,6 +509,7 @@ function renderCompleted(){
  $('doneTotal').textContent=arr.filter(x=>x.product==='Mantolama').reduce((a,x)=>a+Number(x.sqm||0),0).toLocaleString('tr-TR');
  $('doneForms').textContent='—';
  $('completedOrders').innerHTML=arr.length?arr.map(orderHTML).join(''):'<div class="card">Seçilen tarih aralığında tamamlanan sipariş bulunamadı.</div>';
+ try{renderDailySummary()}catch(e){}
 }
 function todayLocal(){
  const d=new Date();
