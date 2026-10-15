@@ -252,6 +252,11 @@ function initSupabaseClient(){
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function saveLocal(){try{localStorage.setItem('cenkar_orders',JSON.stringify(data));return true}catch(e){console.error('Yerel kayıt hatası:',e);alert('Kayıt yapılamadı: telefon hafızasında yerel kayıt sorunu var.');return false}}
+function underfloorPackageWeight(density,unit='kg'){
+ const weights={22:5.530,24:5.875,26:6.221,28:6.566,30:6.912,32:7.258,34:7.603,36:7.949,38:8.294,40:8.640};
+ const v=weights[Number(density)];
+ return v==null?'':v.toLocaleString('tr-TR',{minimumFractionDigits:3,maximumFractionDigits:3})+' '+unit;
+}
 function setDensity(select,product,old){
  select.innerHTML='';
  if(product==='Mantolama'){
@@ -410,7 +415,7 @@ function populateCities(){
 function orderHTML(x){
  const isY=x.product==='Yerden Isıtma';
  const qty=isY?(x.quantityType==='1 TIR'?'🚛 1 TIR':`📦 ${Number(x.sqm||0).toLocaleString('tr-TR')} Paket`):`<b>${Number(x.sqm||0).toLocaleString('tr-TR')} m²</b>`;
- const product=isY?`${esc(x.product)} · ${esc(x.foil)} · ${esc(x.density)} DNS`:x.product==='Mantolama'?`${esc(x.product)} · ${esc(x.epsType||'Beyaz EPS')} · Takım Sistem: ${esc(x.teamSystem||'Hayır')} · ${esc(x.thickness)} cm · ${esc(x.density)} DNS`:esc(x.product);
+ const product=isY?`${esc(x.product)} · ${esc(x.foil)} · ${esc(x.density)} DNS (${esc(underfloorPackageWeight(x.density))})`:x.product==='Mantolama'?`${esc(x.product)} · ${esc(x.epsType||'Beyaz EPS')} · Takım Sistem: ${esc(x.teamSystem||'Hayır')} · ${esc(x.thickness)} cm · ${esc(x.density)} DNS`:esc(x.product);
  return `<div class="order"><div class="order-top"><b>${esc(x.customer)}</b>${x.completed?'<span class="badge">Tamamlandı</span>':''}</div>
  <div class="meta"><b>${product}</b> · ${esc(x.city)||'-'} / ${esc(x.district)||'-'} · ${qty}<br>
  <div class="created-at">Oluşturulma: ${esc(formatCreatedAt(x))}</div>
@@ -584,7 +589,7 @@ function applyShipment(mode){
 function shareOrder(id){
  const x=data.find(o=>String(o.id)===String(id));if(!x)return;
  const lines=['CENKAR SEVKİYAT','',`MÜŞTERİ: ${x.customer||'-'}`,`ÜRÜN ÇEŞİDİ: ${x.product||'-'}`,`YOĞUNLUK: ${x.density||'-'} DNS`];
- if(x.product==='Yerden Isıtma'){lines.push(`FOLYOLU / FOLYOSUZ: ${x.foil||'-'}`);if(x.quantityType==='1 TIR')lines.push('MİKTAR: 1 TIR');else lines.push(`MİKTAR: ${Number(x.sqm||0)||Number(x.packageCount||0)} PAKET`);}
+ if(x.product==='Yerden Isıtma'){lines.push(`PAKET AĞIRLIĞI: ${underfloorPackageWeight(x.density)||'-'}`,`FOLYOLU / FOLYOSUZ: ${x.foil||'-'}`);if(x.quantityType==='1 TIR')lines.push('MİKTAR: 1 TIR');else lines.push(`MİKTAR: ${Number(x.sqm||0)||Number(x.packageCount||0)} PAKET`);}
  if(x.product==='Mantolama')lines.push(`MANTOLAMA TİPİ: ${x.epsType||'Beyaz EPS'}`,`TAKIM SİSTEM: ${x.teamSystem||'Hayır'}`,`KALINLIK: ${x.thickness||'-'} cm`);
  lines.push(`İL / İLÇE: ${x.city||'-'} / ${x.district||'-'}`,`İRTİBAT: ${x.phone||'-'}`,`NOT: ${x.note||'-'}`,'',`PLAKA - ÇEKİCİ: ${x.tractor||'-'}`,`PLAKA - DORSE: ${x.trailer||'-'}`,`ŞOFÖR: ${x.driver||'-'}`,`ŞOFÖR TEL: ${x.soforTel||'-'}`);
  const text=lines.join('\n');
