@@ -588,8 +588,12 @@ function applyShipment(mode){
 }
 function shareOrder(id){
  const x=data.find(o=>String(o.id)===String(id));if(!x)return;
- const lines=['CENKAR SEVKİYAT','',`MÜŞTERİ: ${x.customer||'-'}`,`ÜRÜN ÇEŞİDİ: ${x.product||'-'}`,`YOĞUNLUK: ${x.density||'-'} DNS`];
- if(x.product==='Yerden Isıtma'){lines.push(`PAKET AĞIRLIĞI: ${underfloorPackageWeight(x.density)||'-'}`,`FOLYOLU / FOLYOSUZ: ${x.foil||'-'}`);if(x.quantityType==='1 TIR')lines.push('MİKTAR: 1 TIR');else lines.push(`MİKTAR: ${Number(x.sqm||0)||Number(x.packageCount||0)} PAKET`);}
+ const isUnderfloor=x.product==='Yerden Isıtma';
+ const packageKg=isUnderfloor?Number(({22:5.530,24:5.875,26:6.221,28:6.566,30:6.912,32:7.258,34:7.603,36:7.949,38:8.294,40:8.640})[Number(x.density)]||0):0;
+ const packageCount=Number(x.sqm||0)||Number(x.packageCount||0);
+ const fmtKg=n=>n.toLocaleString('tr-TR',{minimumFractionDigits:3,maximumFractionDigits:3})+' kg';
+ const lines=['CENKAR SEVKİYAT','',`MÜŞTERİ: ${x.customer||'-'}`,`ÜRÜN ÇEŞİDİ: ${x.product||'-'}`,`YOĞUNLUK: ${x.density||'-'} DNS${isUnderfloor&&packageKg?` (${fmtKg(packageKg)} / PAKET)`:''}`];
+ if(isUnderfloor){lines.push(`PAKET AĞIRLIĞI: ${packageKg?fmtKg(packageKg):'-'}`,`FOLYOLU / FOLYOSUZ: ${x.foil||'-'}`);if(x.quantityType==='1 TIR')lines.push('MİKTAR: 1 TIR');else lines.push(`MİKTAR: ${packageCount} PAKET`);}
  if(x.product==='Mantolama')lines.push(`MANTOLAMA TİPİ: ${x.epsType||'Beyaz EPS'}`,`TAKIM SİSTEM: ${x.teamSystem||'Hayır'}`,`KALINLIK: ${x.thickness||'-'} cm`);
  lines.push(`İL / İLÇE: ${x.city||'-'} / ${x.district||'-'}`,`İRTİBAT: ${x.phone||'-'}`,`NOT: ${x.note||'-'}`,'',`PLAKA - ÇEKİCİ: ${x.tractor||'-'}`,`PLAKA - DORSE: ${x.trailer||'-'}`,`ŞOFÖR: ${x.driver||'-'}`,`ŞOFÖR TEL: ${x.soforTel||'-'}`);
  const text=lines.join('\n');
